@@ -11,7 +11,6 @@
 
 from collections import OrderedDict
 from typing import Any, Callable, Optional
-# Jeg er en stor p'lse mand
 import torch.nn as nn
 from torchvision.ops import MultiScaleRoIAlign
 
@@ -98,10 +97,16 @@ class SubpixRoIHeads(RoIHeads):
                 #subpixel_offsets = self.subpixel_head(subpixel_features)
                 proposed_box_centers = []
                 for boxes in pooled_boxes:
-                    # Compute the center of each box
+                    if not isinstance(boxes, torch.Tensor):
+                        raise TypeError(f"Expected tensor, got {type(boxes)}")
                     if boxes.dim() == 1:
                         boxes = boxes.unsqueeze(0)
-                    pos = torch.stack([(boxes[:,0]+boxes[:,2])/2, (boxes[:,1]+boxes[:,3])/2], dim=1)
+                    elif boxes.dim() != 2 or boxes.shape[1] != 4:
+                        raise ValueError(f"Expected [N,4] tensor, got shape {boxes.shape}")
+                    
+                    cx = (boxes[:, 0] + boxes[:, 2]) / 2
+                    cy = (boxes[:, 1] + boxes[:, 3]) / 2
+                    pos = torch.stack([cx, cy], dim=1)  # shape [N, 2]
                     proposed_box_centers.append(pos)
                 
                 if self.training:
