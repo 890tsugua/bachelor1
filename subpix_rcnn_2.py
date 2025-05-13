@@ -11,7 +11,7 @@
 
 from collections import OrderedDict
 from typing import Any, Callable, Optional
-
+# Jeg er en stor p'lse mand
 import torch.nn as nn
 from torchvision.ops import MultiScaleRoIAlign
 
