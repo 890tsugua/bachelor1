@@ -97,24 +97,23 @@ class SubpixRoIHeads(RoIHeads):
                 #subpixel_offsets = self.subpixel_head(subpixel_features)
                 proposed_box_centers = []
                 for boxes in pooled_boxes:
-                    if not isinstance(boxes, torch.Tensor):
-                        raise TypeError(f"Expected tensor, got {type(boxes)}")
                     if boxes.dim() == 1:
-                        boxes = boxes.unsqueeze(0)
-                    elif boxes.dim() != 2 or boxes.shape[1] != 4:
-                        raise ValueError(f"Expected [N,4] tensor, got shape {boxes.shape}")
-                    
-                    cx = (boxes[:, 0] + boxes[:, 2]) / 2
-                    cy = (boxes[:, 1] + boxes[:, 3]) / 2
+                        cx = (boxes[0] + boxes[2]) / 2
+                        cy = (boxes[1] + boxes[3]) / 2
+                    else:
+                        cx = (boxes[:, 0] + boxes[:, 2]) / 2
+                        cy = (boxes[:, 1] + boxes[:, 3]) / 2
                     pos = torch.stack([cx, cy], dim=1)  # shape [N, 2]
                     proposed_box_centers.append(pos)
                 
+                proposed_box_centers = torch.cat(proposed_box_centers, dim=0) # shape [N, 2]
+
                 if self.training:
                     # Compute subpixel loss.
                     # subpixel_loss = F.mse_loss(subpixel_offsets, torch.cat(pooled_offset_targets,dim=0)) # Combine targets into one tensor
                     #losses.update({"loss_subpixel": subpixel_loss})
                     # Compute position loss
-                    position_loss = F.mse_loss(torch.cat(proposed_box_centers,dim=0), torch.cat(pooled_offset_targets,dim=0)) # Combine targets into one tensor
+                    position_loss = F.mse_loss(proposed_box_centers, torch.cat(pooled_offset_targets,dim=0)) # Combine targets into one tensor
                     losses.update({"loss_subpixel": position_loss})
                 else:
                     # Inference mode. Add the subpixel offset proposals to the results.
