@@ -163,6 +163,6 @@ def generate_checkpoint_path(model_name, project_name="Subpix_models"):
   return checkpoint_path
 
 checkpoint_path = generate_checkpoint_path("sp_no_noise_justboxes_model")
-num_epochs = 5
-
+num_epochs = 2
+checkpoint_path = "/Users/august/Desktop/bachelor"
 train_loop(model, training_loader, validation_loader, optimizer, device, num_epochs, checkpoint_path)
