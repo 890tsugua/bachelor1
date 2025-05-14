@@ -1,9 +1,9 @@
 from torchvision.models.detection import resnet_fpn_backbone
-from subpix_rcnn_2 import SubpixRCNN
-from model_prep import move_data_to_device, move_dict_to_cpu
+from models.subpix_rcnn import SubpixRCNN
+from utils import move_data_to_device, move_dict_to_cpu
 import torch
 from data_simulator import PsfDataset, plot_image_boxes
-from testing import valid_dataset
+from scripts.training import valid_dataset
 
 backbone = resnet_fpn_backbone("resnet50", pretrained=True)
 kwargs = {"nms_tresh": 0.1, "detections_per_img": 5}
