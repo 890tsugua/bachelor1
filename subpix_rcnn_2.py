@@ -55,8 +55,9 @@ class SubpixRoIHeads(RoIHeads):
     def __init__(self, *args, subpixel_head=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.subpixel_head = subpixel_head
-        dev = kwargs.get('device', None)
-        self.device = torch.device(dev) if dev is not None else torch.device("cpu")
+        self.device = kwargs.get('device', None)
+        #dev = kwargs.get('device', None)
+        #self.device = torch.device(dev) if dev is not None else torch.device("cpu")
         print("Custom SubpixRoIHeads successfully initialized!")
 
     def forward(self, features, proposals, image_shapes, targets = None):

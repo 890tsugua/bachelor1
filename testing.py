@@ -123,7 +123,10 @@ def train_loop(model, training_loader, validation_loader, optimizer, device, epo
     if device.type != 'cpu':
         getattr(torch, device.type).empty_cache()
 
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 backbone = resnet_fpn_backbone("resnet50", pretrained=True)
 kwargs = {"nms_tresh": 0.1, "detections_per_img": 5}
@@ -132,17 +135,10 @@ model.to(device)
 model.name = "testmodel"
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-
-def generate_checkpoint_path(model_name, project_name="Subpix_models"):
-    folder_path = os.path.join(os.getcwd(), project_name)
-    os.makedirs(folder_path, exist_ok=True)
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    checkpoint_dir = os.path.join(folder_path, timestamp)
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    checkpoint_path = os.path.join(checkpoint_dir, f"{model_name}.pth")
-    return checkpoint_path
-
-checkpoint_path = generate_checkpoint_path("sp_no_noise_justboxes_model")
 num_epochs = 5
 
+checkpoint_path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\Models\best_model.pkl"
+os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+
 train_loop(model, training_loader, validation_loader, optimizer, device, num_epochs, checkpoint_path)
+
