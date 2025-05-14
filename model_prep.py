@@ -100,3 +100,17 @@ def move_data_to_device(data, # Data to move to the device.
     # If the data type is not a tensor, list, tuple, or dictionary, it remains unchanged.
     else:
         return data
+
+def move_dict_to_cpu(data_dict):
+  """Moves all tensors in a dictionary to CPU.
+
+  Args:
+    data_dict: A dictionary containing tensors.
+
+  Returns:
+    A dictionary with all tensors moved to CPU.
+  """
+  for key, value in data_dict.items():
+    if isinstance(value, torch.Tensor):
+      data_dict[key] = value.cpu()
+  return data_dict
