@@ -117,7 +117,7 @@ def make_targets(positions, sigmas, masks, img_w, img_h):
         #box = [p[0]-1,p[1]-1,p[0]+1,p[1]+1] #xyxy format. Bottom left corner, top right corner.
         box = [p[0]-1,p[1]-1,p[0]+1,p[1]+1] #xyxy format. Bottom left corner, top right corner.
         bboxes.append(box)
-    bboxes = torch.tensor(bboxes)
+    bboxes = torch.clamp(torch.tensor(bboxes), min=0, max=img_w)
 
     targets = {
         'boxes': bboxes,

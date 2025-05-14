@@ -55,7 +55,8 @@ class SubpixRoIHeads(RoIHeads):
     def __init__(self, *args, subpixel_head=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.subpixel_head = subpixel_head
-        self.device = kwargs.get('device', None)
+        dev = kwargs.get('device', None)
+        self.device = torch.device(dev) if dev is not None else torch.device("cpu")
         print("Custom SubpixRoIHeads successfully initialized!")
 
     def forward(self, features, proposals, image_shapes, targets = None):
@@ -97,6 +98,7 @@ class SubpixRoIHeads(RoIHeads):
                 #subpixel_offsets = self.subpixel_head(subpixel_features)
                 proposed_box_centers = []
                 for boxes in pooled_boxes:
+                    boxes = boxes.to(torch.float32)
                     if boxes.dim() == 1:
                         cx = (boxes[0] + boxes[2]) / 2
                         cy = (boxes[1] + boxes[3]) / 2
@@ -105,7 +107,6 @@ class SubpixRoIHeads(RoIHeads):
                         cy = (boxes[:, 1] + boxes[:, 3]) / 2
                     pos = torch.stack([cx, cy], dim=1)  # shape [N, 2]
                     proposed_box_centers.append(pos)
-                
                 proposed_box_centers = torch.cat(proposed_box_centers, dim=0) # shape [N, 2]
 
                 if self.training:
