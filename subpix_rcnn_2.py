@@ -98,7 +98,6 @@ class SubpixRoIHeads(RoIHeads):
                 #subpixel_offsets = self.subpixel_head(subpixel_features)
                 proposed_box_centers = []
                 for boxes in pooled_boxes:
-                    boxes = boxes.to(torch.float32)
                     if boxes.dim() == 1:
                         cx = (boxes[0] + boxes[2]) / 2
                         cy = (boxes[1] + boxes[3]) / 2
