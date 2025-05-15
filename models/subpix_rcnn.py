@@ -189,31 +189,3 @@ class SubpixRCNN(FasterRCNN):
             if strict and self.roi_heads.subpixel_head is not None:
                 m_keys = [prefix + "roi_heads.subpixel_head." + k for k, _ in self.roi_heads.subpixel_head.named_parameters()]
                 missing_keys.extend(m_keys)
-
-
-
-
-"""
-backbone = resnet_fpn_backbone("resnet50", pretrained=True)
-model = SubpixRCNN(backbone, num_classes=2)
-print(model.roi_heads)
-print(model.backbone)
-
-images = [torch.rand(3,800,800) for i in range(10)]
-print(images.__len__())
-
-model.eval()
-output = model(images)
-print(output)"""
-
-
-"""  -- NOTES -- 
-kwargs is passed as a dictionary.
-When initiating a class you can use kwargs.get("key", default)
-
-Inside FasterRCNN: Stuff either has a default value OR inside init is called "if x is none then..."
-
-
-
-
-"""
