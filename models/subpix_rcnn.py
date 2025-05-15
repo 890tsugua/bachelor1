@@ -64,7 +64,7 @@ class SubpixRoIHeads(RoIHeads):
         result, losses = super().forward(features, proposals, image_shapes, targets) # Results and losses after backbone, rpn and bbox head
         # Now the subpixel head logic.
         
-        if self.subpixel_head is not None: # Make sure there is a subpixel head.
+        if 1 == 2 and self.subpixel_head is not None: # Make sure there is a subpixel head.
 
             bbox_proposals = [r["boxes"] for r in result] # Extracts bounding boxes. r is for each image.
 
@@ -167,6 +167,31 @@ class SubpixRCNN(FasterRCNN):
             subpixel_head=subpixel_head
         )
         self.roi_heads = new_roi_heads
+
+    def forward(self, images, targets=None):
+        """
+        Compute the forward pass of the model and add box centers to the results.
+        """
+        # Standard training behavior inherited from the parent class
+        if self.training:
+            return super().forward(images, targets)
+        else:
+            # Inference mode
+            detections = super().forward(images, targets)
+            # Add the box centers to the results
+            box_centers = []
+            boxlists = [d['boxes'] for d in detections]
+            for boxes in boxlists:
+                if boxes.dim() == 1:
+                    cx = (boxes[0] + boxes[2]) / 2
+                    cy = (boxes[1] + boxes[3]) / 2
+                else:
+                    cx = (boxes[:, 0] + boxes[:, 2]) / 2
+                    cy = (boxes[:, 1] + boxes[:, 3]) / 2
+                pos = torch.stack([cx, cy], dim=1)  # shape [N, 2]
+                box_centers.append(pos)
+            for i, detection in enumerate(detections):
+                detection["box_centers"] = box_centers[i]
 
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
                           missing_keys, unexpected_keys, error_msgs):
