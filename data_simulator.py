@@ -74,7 +74,6 @@ def round_position(pos):
 
 def draw_array(positions, sigmas, input_array: np.float32, snrs, pad):
     h, w = input_array.shape
-    masks = np.zeros((positions.shape[0],h,w)) # Initialize empty masks
 
     for i, ((x, y), sigma, snr) in enumerate(zip(positions, sigmas, snrs)):
         subpos = (x%1, y%1)
@@ -134,9 +133,9 @@ def make_one_data(
     snrs = np.clip(np.random.normal(snr_mean,snr_std,num_spots),0,None)
     pad = int(np.ceil(3*np.max(sigmas)*2))
 
-    background = make_background(base_noise,False,gauss_noise_std,pad,img_w, img_h)  # FALSE ADDED
+    background = make_background(base_noise,use_gauss_noise,gauss_noise_std,pad,img_w, img_h)
     image_array = draw_array(positions, sigmas, background, snrs, pad)       
-    #image_array = add_poisson(image_array)                        
+    image_array = add_poisson(image_array)                        
     image_array = np.clip(image_array, 0, 255).astype(np.uint8)
     image = torch.tensor(np.stack([image_array.astype(np.float32) / 255] * 3, axis=0))  
 
