@@ -43,7 +43,7 @@ valid_dataset = PsfDataset( 2,
 backbone = resnet_fpn_backbone("resnet50", pretrained=True)
 kwargs = {"nms_tresh": 0.1, "detections_per_img": 5}
 model = SubpixRCNN(backbone, num_classes=2, device='cuda', **kwargs)
-model.load_state_dict(torch.load(r'D:\zeiss\Desktop\coding\Hilger\bachelor\subpix_rcnn\2025-05-15_09-57-48\testmodel.pth'))
+model.load_state_dict(torch.load(r'D:\zeiss\Desktop\coding\Hilger\bachelor\subpix_rcnn_models\2025-05-15_13-25-13\testmodel.pth'))
 
 model.to(device='cuda')
 device = 'cuda'
@@ -59,6 +59,6 @@ with torch.no_grad():
 out = out[0]
 move_dict_to_cpu(tar)
 move_dict_to_cpu(out)
-plot_image_boxes(img,None,out,True,True)
+plot_image_boxes(img,tar,out,True,True)
 print(out)
 print(tar)

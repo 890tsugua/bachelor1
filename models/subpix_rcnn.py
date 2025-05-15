@@ -172,26 +172,26 @@ class SubpixRCNN(FasterRCNN):
         """
         Compute the forward pass of the model and add box centers to the results.
         """
+        outputs = super().forward(images, targets)
         # Standard training behavior inherited from the parent class
         if self.training:
-            return super().forward(images, targets)
-        else:
-            # Inference mode
-            detections = super().forward(images, targets)
-            # Add the box centers to the results
-            box_centers = []
-            boxlists = [d['boxes'] for d in detections]
-            for boxes in boxlists:
+            return outputs
+        
+        # Inference. Add the box centers to the results
+        for output in outputs:
+            boxes = output['boxes']
+            if boxes.numel() > 0:
                 if boxes.dim() == 1:
                     cx = (boxes[0] + boxes[2]) / 2
                     cy = (boxes[1] + boxes[3]) / 2
                 else:
                     cx = (boxes[:, 0] + boxes[:, 2]) / 2
                     cy = (boxes[:, 1] + boxes[:, 3]) / 2
-                pos = torch.stack([cx, cy], dim=1)  # shape [N, 2]
-                box_centers.append(pos)
-            for i, detection in enumerate(detections):
-                detection["box_centers"] = box_centers[i]
+                centers = torch.stack([cx, cy], dim=1)  # shape [N, 2]
+                output['box_centers'] = centers
+            else:
+                output['box_centers'] = torch.empty((0, 2), device=boxes.device)
+        return outputs
 
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
                           missing_keys, unexpected_keys, error_msgs):

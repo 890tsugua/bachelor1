@@ -131,7 +131,7 @@ def plot_image_boxes(image, targets=None, proposals=None, plot_boxes=True, plot_
         for p in targets['positions']:
             plt.scatter([p[0].item()*10],[p[1].item()*10], color="red", marker="x")
     if proposals is not None and plot_pos==True:
-        for p in proposals['subpixel_positions']:
+        for p in proposals['box_centers']:
             plt.scatter([p[0].item()*10],[p[1].item()*10], edgecolors="blue", marker="o",facecolors="none")
     plt.show()
 
