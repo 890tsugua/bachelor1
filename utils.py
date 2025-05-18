@@ -73,7 +73,7 @@ def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     avg_f1 = total_f1 / num_images
     avg_ji = total_ji / num_images
 
-    return precision, recall, avg_f1, avg_ji
+    return {"precision": precision, "recall": recall, "avg f1": avg_f1, "avg ji": avg_ji}
 
 
 def move_data_to_device(data, # Data to move to the device.
