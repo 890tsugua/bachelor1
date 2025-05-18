@@ -48,25 +48,20 @@ def evaluate_prediction(prediction, target, iou_thresh = 0.5):
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     f1 = (2*(precision*recall))/(precision+recall) if (precision + recall) > 0 else 0
 
-    return tp, fp, fn, precision, recall, f1, ji
+    return precision, recall, f1, ji
 
 def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     """
     A method that is able to evaluate a batch (list) of predictions
     """
-    total_tp = 0
-    total_fp = 0
-    total_fn = 0
+
     precision = 0
     recall = 0
     total_f1 = 0
     total_ji = 0
 
     for prediction, target in zip(predictions, targets):
-        tp, fp, fn, p, r, f1, ji = evaluate_prediction(prediction, target, iou_thresh)
-        total_tp += tp
-        total_fp += fp
-        total_fn += fn
+        p, r, f1, ji = evaluate_prediction(prediction, target, iou_thresh)
         precision += p
         recall += r
         total_f1 += f1
@@ -78,7 +73,7 @@ def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     avg_f1 = total_f1 / num_images
     avg_ji = total_ji / num_images
 
-    return total_tp, total_fp, total_fn, precision, recall, avg_f1, avg_ji
+    return precision, recall, avg_f1, avg_ji
 
 
 def move_data_to_device(data, # Data to move to the device.
