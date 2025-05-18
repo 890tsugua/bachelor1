@@ -3,6 +3,82 @@ import torch
 import matplotlib.pyplot as plt
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
 import torch.nn.functional as F
+import torchvision
+from torchvision.ops import box_iou
+
+def evaluate_prediction(prediction, target, iou_thresh = 0.5):
+    """
+    Evaluate a single image prediction against the target. 
+    Prediction and target are dictionaries containing keys...
+    """
+    pred_boxes = prediction['boxes']
+    gt_boxes = target['boxes']
+
+    # Match each prediction to at most one ground truth using greedy matching
+    
+    iou_matrix = box_iou(pred_boxes, gt_boxes)
+
+    matches = []
+    used_preds = set()
+    used_gts = set()
+
+    pairs = [(i, j, iou_matrix[i,j].item())
+             for i in range(iou_matrix.shape[0])
+             for j in range(iou_matrix.shape[1])] # Makes a list of tuples. All possible pairs
+
+    # Sort pairs by IoU in descending order
+    pairs.sort(key=lambda x: x[2], reverse=True)
+
+    # Now greedy matching.
+    for i, j, iou in pairs:
+        if iou < iou_thresh:
+            continue
+        if i not in used_preds and j not in used_gts:
+            matches.append((i,j))
+            used_preds.add(i)
+            used_gts.add(j)
+
+    # Calculate TP, FP, FN
+    tp = len(matches)
+    fp = pred_boxes.shape[0] - tp
+    fn = gt_boxes.shape[0] - tp
+
+    ji = tp / (tp + fp + fn) if (tp + fp + fn) > 0 else 0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1 = (2*(precision*recall))/(precision+recall) if (precision + recall) > 0 else 0
+
+    return tp, fp, fn, precision, recall, f1, ji
+
+def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
+    """
+    A method that is able to evaluate a batch (list) of predictions
+    """
+    total_tp = 0
+    total_fp = 0
+    total_fn = 0
+    precision = 0
+    recall = 0
+    total_f1 = 0
+    total_ji = 0
+
+    for prediction, target in zip(predictions, targets):
+        tp, fp, fn, p, r, f1, ji = evaluate_prediction(prediction, target, iou_thresh)
+        total_tp += tp
+        total_fp += fp
+        total_fn += fn
+        precision += p
+        recall += r
+        total_f1 += f1
+        total_ji += ji
+
+    num_images = len(predictions)
+    precision /= num_images
+    recall /= num_images
+    avg_f1 = total_f1 / num_images
+    avg_ji = total_ji / num_images
+
+    return total_tp, total_fp, total_fn, precision, recall, avg_f1, avg_ji
 
 
 def move_data_to_device(data, # Data to move to the device.
