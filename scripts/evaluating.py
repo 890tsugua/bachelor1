@@ -13,7 +13,7 @@ num_spots_min = 2
 num_spots_max = 6
 sigma_mean = 2.0
 sigma_std = 0.0
-snr_mean = 10
+snr_mean = 5
 snr_std = 0.2
 base_noise_min = 50
 base_noise_max = 150
@@ -58,14 +58,22 @@ img, tar = valid_dataset[1]
 img = move_data_to_device(img, device)
 tar = move_data_to_device(tar, device)
 with torch.no_grad():
-    out = model([img])[0]
+    out = model([img])
+eval = evaluate_predictions(out, [tar], 0.5)
+print(eval)
+out = out[0]
 move_dict_to_cpu(tar)
 move_dict_to_cpu(out)
-plot_image_boxes(img, tar, out, True, True)
+
+from plotting import PlotController
+# Create an instance of the PlotController
+plot_controller = PlotController(img, tar, out)
+
+
+#plot_image_boxes(img, tar, out, True, True)
 print(out)
 print(tar)
-eval = evaluate_predictions(out, tar, 0.5)
-print(eval)
+
 
 """
 
