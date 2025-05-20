@@ -1,8 +1,7 @@
 
 import pandas as pd
 import torch
-
-from torchvision.models.detection.backbone_utils import resnet_fpn_backbone, _resnet_fpn_extractor, _validate_trainable_layers
+#from torchvision.models.detection.backbone_utils import resnet_fpn_backbone, _resnet_fpn_extractor, _validate_trainable_layers
 from tqdm.auto import tqdm
 from utils import move_data_to_device, move_dict_to_cpu
 
@@ -40,7 +39,7 @@ def run_epoch(model, dataloader, optimizer, device, is_training):
 
   return epoch_loss / (batch_id+1) # Returns average loss for this epoch.
 
-def train_loop(model, training_loader, validation_loader, optimizer, device, epochs, checkpoint_path):
+def train_loop(model, training_loader, validation_loader, optimizer, device, epochs, checkpoint_path, writer):
   best_loss = torch.inf
 
   for epoch in tqdm(range(epochs), desc="Epochs"):
@@ -53,8 +52,9 @@ def train_loop(model, training_loader, validation_loader, optimizer, device, epo
         best_loss = valid_loss
         print(f"New best loss: {best_loss}")
         torch.save(model.state_dict(), checkpoint_path)
-
+    writer.add_scalar('Loss/train', train_loss, epoch)
+    writer.add_scalar('Loss/valid', valid_loss, epoch)
   # If the device is a GPU, empty the cache
   if device.type != 'cpu':
     getattr(torch, device.type).empty_cache()
-
+  writer.close()

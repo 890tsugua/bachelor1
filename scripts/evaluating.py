@@ -41,7 +41,6 @@ def density_to_num_spots(density, img_w, img_h, um_per_pixel):
     num_spots = density * area_in_um
     return int(num_spots)
 
-
 def test_model_fixed_snr(model, snr, start_density, end_density, step_density, num_images, device, **kwargs):
     """
     Test the model with a fixed SNR across a range of densities.
