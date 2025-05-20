@@ -25,7 +25,7 @@ def test_model_once_plot(model, dataset, device, type='simple'):
     out = out[0]
     move_dict_to_cpu(tar)
     move_dict_to_cpu(out)
-    PlotController(img, tar, out, type)
+    PlotController(img, tar, out, type, True, True)
 
 
 def density_to_num_spots(density, img_w, img_h, um_per_pixel):

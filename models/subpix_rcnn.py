@@ -61,7 +61,9 @@ class SubpixRoIHeads(RoIHeads):
         print("Custom SubpixRoIHeads successfully initialized!")
 
     def forward(self, features, proposals, image_shapes, targets = None):
-        result, losses = super().forward(features, proposals, image_shapes, targets) # Results and losses after backbone, rpn and bbox head
+        
+        result, losses = super().forward(features, proposals, image_shapes, targets) 
+        # Results and losses after backbone, rpn and bbox head
         # Now the subpixel head logic.
         
         if 1 == 2 and self.subpixel_head is not None: # Make sure there is a subpixel head.
@@ -172,6 +174,7 @@ class SubpixRCNN(FasterRCNN):
         """
         Compute the forward pass of the model and add box centers to the results.
         """
+        
         outputs = super().forward(images, targets)
         # Standard training behavior inherited from the parent class
         if self.training:

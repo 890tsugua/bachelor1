@@ -137,9 +137,13 @@ def make_one_data(
     image_array = draw_array(positions, sigmas, background, snrs, pad)       
     image_array = add_poisson(image_array)                        
     image_array = np.clip(image_array, 0, 255).astype(np.uint8)
+
+    # Pad the image with one pixel on each side
+    image_array = np.pad(image_array, ((1, 1), (1, 1)), mode='median')
+
     image = torch.tensor(np.stack([image_array.astype(np.float32) / 255] * 3, axis=0))  
 
-    targets = make_targets(positions, None, None, img_w, img_h)
+    targets = make_targets(positions+1, None, None, img_w+2, img_h+2)
 
     return image, targets
 
