@@ -214,7 +214,7 @@ class PsfDataset(Dataset):
                                         num_spots,
                                         self._sigma_mean,
                                         self._sigma_std,
-                                        snr, # Changed from self._snr_mean
+                                        self._snr_mean,#snr, # Changed from self._snr_mean
                                         self._snr_std,
                                         base_noise,
                                         self._use_gauss_noise,
