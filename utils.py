@@ -1,4 +1,3 @@
-# utils
 import torch
 import matplotlib.pyplot as plt
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
@@ -48,7 +47,16 @@ def evaluate_prediction(prediction, target, iou_thresh = 0.5):
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     f1 = (2*(precision*recall))/(precision+recall) if (precision + recall) > 0 else 0
 
-    return precision, recall, f1, ji
+    # ADD LOCALIZATION ERROR
+    loc_error = 0
+    for (i,j) in matches:
+        dx = target['positions'][j][0] - prediction['box_centers'][i][0]
+        dy = target['positions'][j][1] - prediction['box_centers'][i][1]
+        loc_error += (dx**2 + dy**2)**0.5
+    loc_error /= tp if tp > 0 else 1
+    loc_error = loc_error.item() if isinstance(loc_error, torch.Tensor) else loc_error
+
+    return precision, recall, f1, ji, loc_error
 
 def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     """
@@ -59,21 +67,24 @@ def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     recall = 0
     total_f1 = 0
     total_ji = 0
+    total_le = 0
 
     for prediction, target in zip(predictions, targets):
-        p, r, f1, ji = evaluate_prediction(prediction, target, iou_thresh)
+        p, r, f1, ji, le = evaluate_prediction(prediction, target, iou_thresh)
         precision += p
         recall += r
         total_f1 += f1
         total_ji += ji
+        total_le += le
 
     num_images = len(predictions)
     precision /= num_images
     recall /= num_images
     avg_f1 = total_f1 / num_images
     avg_ji = total_ji / num_images
+    avg_le = total_le / num_images
 
-    return {"precision": precision, "recall": recall, "avg f1": avg_f1, "avg ji": avg_ji}
+    return {"precision": precision, "recall": recall, "avg f1": avg_f1, "avg ji": avg_ji, "avg loc error": avg_le}
 
 
 def move_data_to_device(data, # Data to move to the device.

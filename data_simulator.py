@@ -204,12 +204,13 @@ class PsfDataset(Dataset):
         seed = np.random.randint(1,1000000)
         num_spots = np.random.randint(self._num_spots_min, self._num_spots_max+1)
         base_noise = np.random.randint(self._base_noise_min, self._base_noise_max+1)
+        snr = np.random.randint(1.5, 10)
 
         image, target = make_one_data(  seed,
                                         num_spots,
                                         self._sigma_mean,
                                         self._sigma_std,
-                                        self._snr_mean,
+                                        self._snr_mean,#snr, # Changed from self._snr_mean
                                         self._snr_std,
                                         base_noise,
                                         self._use_gauss_noise,
