@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from utils import evaluate_prediction, move_dict_to_cpu
 
 class PlotController:
-    def __init__(self, image, targets, predictions, type, show_preds, show_targets):
+    def __init__(self, image, targets, predictions, type, show_preds, show_targets, show_scores):
         self.original_image = image.clone().cpu()  # Keep the original image
         self.targets = move_dict_to_cpu(targets)
         if predictions is not None:
@@ -18,6 +18,7 @@ class PlotController:
         self.show_predictions = show_preds
         self.show_targets = show_targets
         self.type = type
+        self.show_scores = show_scores
 
         # Prepare enlarged image for display
         img = self.original_image.unsqueeze(0)
@@ -59,6 +60,9 @@ class PlotController:
                 p_boxes = self.predictions['boxes'] * 10
                 clrs = ["blue"] * len(p_boxes)
                 img = draw_bounding_boxes(img, p_boxes, fill=False, width=1, colors=clrs)
+                if self.show_scores:
+                    for i, score in enumerate(self.predictions['scores']):
+                        self.ax.text(p_boxes[i][0].item(), p_boxes[i][1].item()-4, f"{score:.2f}", color="blue", fontsize=6)
         
         self.ax.imshow(img.permute(1, 2, 0).cpu().numpy())
         
