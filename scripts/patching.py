@@ -67,33 +67,3 @@ def patches_to_image(patches, patch_origins, image_shape, patch_size=64, pad=(0,
     
     return recon
 
-
-img = torch.randn(3, 123, 137)  # RGB image
-patches = image_to_patches(img, patch_size=64, overlap=4)
-print(len(patches))  # Should be num_patches_h * num_patches_w
-print(patches[0].shape)  # torch.Size([3, 64, 64])
-
-# Import a jpg as a tensor [3,H,W]
-from PIL import Image
-import torchvision.transforms as T
-
-from torchvision.transforms import ToPILImage
-
-img_path = '/Users/august/Desktop/bachelor/bachelor1/Monkey-Main-1280x720.jpg'
-pil_img = Image.open(img_path).convert('RGB')
-
-pil_img.show()
-
-# Convert to tensor [3, H, W]
-to_tensor = T.ToTensor()
-img_tensor = to_tensor(pil_img)
-patches, origins, pad = image_to_patches(img_tensor, patch_size=256)
-recon = patches_to_image(patches, origins, img_tensor.shape, patch_size=256, pad=pad)
-recon_pil = ToPILImage()(recon)
-recon_pil.show()
-print(pad)
-print(origins)
-
-
-l = [1,2,3,4]
-print(l.pop(0))

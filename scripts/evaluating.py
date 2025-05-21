@@ -97,7 +97,7 @@ def test_model_fixed_snr(model, snr, start_density, end_density, step_density, n
             target = move_data_to_device(target, device)
             with torch.no_grad():
                 prediction = model([image])
-            all_predictions.append(prediction[0])
+            all_predictions.append(prediction[0])   # THIS IS WEIRD
             all_targets.append(target)
         
         # Evaluate predictions

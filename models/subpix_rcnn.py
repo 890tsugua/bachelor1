@@ -30,6 +30,9 @@ from torchvision.models.detection.generalized_rcnn import GeneralizedRCNN
 import torch.nn.functional as F
 import torch
 
+from scripts.patching import image_to_patches, patches_to_image
+from torchvision.ops import boxes as box_ops
+
 
 class SubpixHead(nn.Module):
     def __init__(self, in_channels: int):
@@ -145,7 +148,7 @@ class SubpixRCNN(FasterRCNN):
         Basically the same implementation as the FasterRCNN class, but adds a custom head.
         kwargs: set specific rpn, box head, transform etc.
         """
-
+        self.device = kwargs.get('device', torch.device("cpu"))
         super().__init__(backbone, num_classes) # Initialize FasterRCNN with default rpn, box head, transform and roi_heads
         
         brp=self.roi_heads.box_roi_pool
@@ -172,10 +175,45 @@ class SubpixRCNN(FasterRCNN):
 
     def forward(self, images, targets=None):
         """
-        Compute the forward pass of the model and add box centers to the results.
+        Perform a forward pass of the SubpixRCNN model.
+
+        Args:
+            images (list[Tensor]): A list of tensors, each of shape [C, H, W], where
+                C is the number of channels, H is the height, and W is the width of the image.
+                Images should be preprocessed (e.g., normalized) before being passed to the model.
+            targets (list[dict], optional): A list of dictionaries, one per image, containing:
+                - 'boxes' (Tensor): Tensor of shape [N, 4] with bounding box coordinates [x1, y1, x2, y2].
+                - 'labels' (Tensor): Tensor of shape [N] with class labels for each bounding box.
+                - 'positions' (Tensor, optional): Tensor of shape [N, 2] with subpixel positions for each box.
+
+        Returns:
+            During training:
+                dict: A dictionary containing the computed losses, including:
+                    - 'loss_classifier': Loss for the classification head.
+                    - 'loss_box_reg': Loss for the bounding box regression head.
+                    - 'loss_objectness': Loss for the RPN objectness score.
+                    - 'loss_rpn_box_reg': Loss for the RPN bounding box regression.
+                    - 'loss_subpixel': Loss for the subpixel position predictions (if applicable).
+            During inference:
+                list[dict]: A list of dictionaries, one per image, containing:
+                    - 'boxes' (Tensor): Tensor of shape [N, 4] with predicted bounding box coordinates.
+                    - 'labels' (Tensor): Tensor of shape [N] with predicted class labels.
+                    - 'scores' (Tensor): Tensor of shape [N] with confidence scores for each prediction.
+                    - 'box_centers' (Tensor): Tensor of shape [N, 2] with predicted box center coordinates.
+                    - 'subpixel_positions' (Tensor, optional): Tensor of shape [N, 2] with predicted subpixel positions.
         """
         
+        # Handle when large images are passed. 
+        # Assume this will only happen during inference with a single image.
+        # Image is a Tensor [3,H,W]
+        used_patching = False
+        for image in images:
+            if image.shape[1] > 66 or image.shape[2] > 66:
+                used_patching = True
+                images, patch_origins, pads = image_to_patches(image, patch_size=64,overlap=4)
+        
         outputs = super().forward(images, targets)
+        
         # Standard training behavior inherited from the parent class
         if self.training:
             return outputs
@@ -194,6 +232,43 @@ class SubpixRCNN(FasterRCNN):
                 output['box_centers'] = centers
             else:
                 output['box_centers'] = torch.empty((0, 2), device=boxes.device)
+
+        if used_patching:
+            # We need to add the patch origins to the predictions so they
+            # fit within the full picture. boxes, labels, centers
+            all_boxes = torch.empty((0, 4), device=self.device, dtype=torch.float32)
+            all_labels = torch.empty((0), device=self.device, dtype=torch.int64)
+            all_centers = torch.empty((0, 2), device=self.device, dtype=torch.float32)
+            all_scores = torch.empty((0), device=self.device, dtype=torch.float32)
+            for i, output in enumerate(outputs):
+                x,y = patch_origins[i]
+                offset = torch.tensor([x, y, x, y], device=boxes.device)
+                offsetcenter = torch.tensor([x, y], device=boxes.device)
+                boxes = output['boxes'] + offset
+                labels = output['labels']
+                centers = output['box_centers'] + offsetcenter
+                scores = output['scores']
+                
+
+                all_boxes = torch.cat((all_boxes, boxes), dim=0)
+                all_labels = torch.cat((all_labels, labels), dim=0)
+                all_centers = torch.cat((all_centers, centers), dim=0)
+                all_scores = torch.cat((all_scores, scores), dim=0)
+            
+            # Also run nms.
+            keep =  box_ops.batched_nms(all_boxes, all_scores, all_labels, self.roi_heads.nms_thresh)
+            all_boxes, all_labels, all_scores, all_centers = all_boxes[keep], all_labels[keep], all_scores[keep], all_centers[keep]
+            output_dict = {
+                'boxes': all_boxes,
+                'labels': all_labels,
+                'scores': all_scores,
+                'box_centers': all_centers
+            }
+            # Add the boxes, labels and centers to the output
+            outputs = [output_dict]
+            # Could also remove predictions outside the image..?
+            
+
         return outputs
 
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
