@@ -15,11 +15,11 @@ sigma_mean = 1.0
 sigma_std = 0.0
 snr_mean = 3
 snr_std = 0.0
-base_noise_min = 10
+base_noise_min = 100
 base_noise_max = 100
 use_gauss_noise = False
 gauss_noise_std = 10
-img_w, img_h = 64, 64
+img_w, img_h = 64,64
 
 # Instantiate the datasets.
 train_dataset = PsfDataset( 1,
@@ -44,15 +44,15 @@ valid_dataset = PsfDataset( 2,
 
 img, tar = valid_dataset[1]
 
-device = 'cuda'
+device = 'cpu'
 img = move_data_to_device(img, device)
 tar = move_data_to_device(tar, device)
 
 backbone = resnet_fpn_backbone("resnet50", pretrained=True)
-kwargs = {"nms_tresh": 0.1, "detections_per_img": 20}
+kwargs = {"nms_thresh": 0.2, "detections_per_img": 20, "score_thresh":0.5}
 model = SubpixRCNN(backbone, num_classes=2, device=device, **kwargs)
 model.to(device=device)
-path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\subpix_rcnn_models\2025-05-20_16-05-31\first_real_run.pth"
+path = r"/Users/august/Desktop/bachelor/bachelor1/first_real_run.pth"
 model.load_state_dict(torch.load(path, map_location=device))
 model.eval()
 
@@ -67,4 +67,18 @@ move_dict_to_cpu(tar)
 
 from scripts.plotting import PlotController
 # Create an instance of the PlotController
-plot_controller = PlotController(img, tar, out, 'eval', 1, 1)
+plot_controller = PlotController(img, tar, out, 'eval', 1, 1, 1)
+
+
+
+# Perlin Noise
+# Patching
+# performance vs density and snr
+# Edge cases... extremely high background noise
+# Run on some real data
+# Size prediction
+# Future prospects: Sammenlign med andre metoder
+# Hvad ville jeg have gjort anderledes?
+# Hvad hvis jeg havde mere tid? 3d... psf vs non-psf
+# SPTnet bruger perlin noise
+# Nikos spørger: Jaccard og IOU

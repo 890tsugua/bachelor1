@@ -4,6 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from perlin_numpy import generate_perlin_noise_2d
 
 # Import PyTorch dependencies
 import torch
@@ -19,19 +20,23 @@ from torchvision.transforms.v2 import functional as TF
 def add_poisson(array):
     return np.random.poisson(array).astype(np.float32)
 
-def make_background(base: float = 100, use_gauss_noise: bool = True, sigma: float = 10, pad: int = 20, img_w=512, img_h=512) -> np.float32:
+def make_background(base: float = 100, use_gauss_noise: bool = True, sigma: float = 10, pad: int = 20, img_w=64, img_h=64) -> np.float32:
     img_w += 2*pad
     img_h += 2*pad
     if use_gauss_noise:
         array = np.clip(np.random.normal(base,sigma,(img_h,img_w)), 0, None)
     else:
         array = np.full((img_h,img_w),int(base))
+    
+    perlin = generate_perlin_noise_2d((img_h-2*pad,img_w-2*pad), (8,8), (0,0)) -0.5
+    array[pad:-pad, pad:-pad] += (perlin * (base*0.1)).astype(np.int64) # SHOULD BE RANDOM STRENGTH
+    
     return array.astype(np.float32)
 
 """ PSF GENERATION """
 def generate_positions(seed: int, num_spots: int, image_width: int, image_height: int):
     # Set the seed for reproducibility
-    np.random.seed(seed)
+    #np.random.seed(seed)
     x = (image_width) * np.random.rand(num_spots)
     y = (image_height) * np.random.rand(num_spots)
     positions = np.column_stack((x,y))
@@ -115,7 +120,7 @@ def make_targets(positions, sigmas, masks, img_w, img_h):
 def make_one_data(
     seed: int = 0,
     num_spots: int = 5,
-    sigma_mean: float = 2,
+    sigma_mean: float = 1,
     sigma_std: float = 0.3,
     snr_mean: float = 10,
     snr_std: float = 0.3,
@@ -224,3 +229,24 @@ class PsfDataset(Dataset):
                                         )
         
         return image, target
+
+
+# pn1 = generate_perlin_noise_2d((64,64), (8,8), (0,0))
+# pn2 = generate_perlin_noise_2d((64,64), (16,16), (0,0))
+# pn3 = pn1*pn2
+
+# # Show all three noise patterns side by side
+# plt.figure(figsize=(12, 4))
+# plt.subplot(1, 3, 1)
+# plt.imshow(pn1, cmap='gray')
+# plt.title('Perlin Noise 1')
+# plt.axis('off')
+# plt.subplot(1, 3, 2)
+# plt.imshow(pn2, cmap='gray')
+# plt.title('Perlin Noise 2')
+# plt.axis('off')
+# plt.subplot(1, 3, 3)
+# plt.imshow(pn3, cmap='gray')
+# plt.title('Combined Perlin Noise')
+# plt.axis('off')
+# plt.show()
