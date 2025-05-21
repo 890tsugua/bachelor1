@@ -4,13 +4,20 @@ import torch
 #from torchvision.models.detection.backbone_utils import resnet_fpn_backbone, _resnet_fpn_extractor, _validate_trainable_layers
 from tqdm.auto import tqdm
 from utils import move_data_to_device, move_dict_to_cpu
+import time
 
 def run_epoch(model, dataloader, optimizer, device, is_training):
   model.train()
   epoch_loss = 0
   progress_bar = tqdm(total=len(dataloader), desc="Train" if is_training else "Eval")
 
+  load_batch_time = 0
+  train_time = 0
+  t0 = time.time()
+  
   for batch_id, (images, targets) in enumerate(dataloader):
+    t1 = time.time()
+    load_batch_time += t1 - t0
     inputs = torch.stack(images).to(device)
     inputs = move_data_to_device(inputs, device)
     targets = move_data_to_device(targets, device)
@@ -29,10 +36,15 @@ def run_epoch(model, dataloader, optimizer, device, is_training):
       optimizer.step() # Update weights
       optimizer.zero_grad() # Zero the gradients.
 
+    t2 = time.time()
+    train_time += t2 - t1
+
     epoch_loss += loss.item()
 
     # Update the progress bar.
-    progress_bar_dict = dict(loss=epoch_loss, avg_loss = epoch_loss/(batch_id+1))
+    progress_bar_dict = dict(loss=epoch_loss, avg_loss = epoch_loss/(batch_id+1),
+            data_time=f"{load_batch_time:.3f}s",
+            train_time=f"{train_time:.3f}s")
     progress_bar.set_postfix(progress_bar_dict)
     progress_bar.update()
   progress_bar.close()
