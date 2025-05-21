@@ -40,7 +40,7 @@ def image_to_patches(image, patch_size=64, overlap=4):
 
 import torch
 
-def patches_to_image(patches, patch_origins, image_shape, patch_size=64, overlap=4, pad=(0, 0)):
+def patches_to_image(patches, patch_origins, image_shape, patch_size=64, pad=(0, 0)):
     """
     Reconstructs an image from patches.
 
@@ -53,40 +53,15 @@ def patches_to_image(patches, patch_origins, image_shape, patch_size=64, overlap
     Returns:
         torch.Tensor: The reconstructed image.
     """
-    if overlap % 2 != 0:
-        raise ValueError("Overlap must be even.")
 
     c, img_h, img_w = image_shape
     pad_w, pad_h = pad[0], pad[1]
 
-    patches_in_row = ((img_w+pad_w)-patch_size) // (patch_size - overlap) +1
-    patches_in_column = ((img_h+pad_h)-patch_size) // (patch_size - overlap) +1
     recon = torch.zeros((c, img_h+pad_h, img_w+pad_w), dtype=patches[0].dtype)
     
-    print(patches_in_row, patches_in_column)
+    for (x,y), patch in zip(patch_origins, patches):
+        recon[:,y:y+patch_size,x:x+patch_size] = patch
 
-    # Insert very first patch
-    recon[:,0:patch_size, 0:patch_size] = patches.pop(0)[:,0:patch_size, 0:patch_size]
-    patch_origins.pop(0)
-
-    # Insert the rest of the patches in the first row
-    for i in range(1, patches_in_row):
-        x, y = patch_origins.pop(0)
-        patch = patches.pop(0)
-        recon[:, 0:patch_size, x+overlap:x + patch_size] = patch[:,0:patch_size, overlap:patch_size]
-    
-    # Insert the rest of the patches
-    for row in range(1, int(patches_in_column)):
-        # Insert very first patch in each row
-        x, y = patch_origins.pop(0)
-        recon[:,y+overlap:y+patch_size, 0:patch_size] += patches.pop(0)[:,overlap:patch_size, 0:patch_size]
-        
-        # Insert the rest of the patches in the row
-        for i in range(1, patches_in_row):
-            x, y = patch_origins.pop(0)
-            patch = patches.pop(0)
-            recon[:, y+overlap:y + patch_size, x+overlap:x + patch_size] += patch[:,overlap:patch_size, overlap:patch_size]
-    
     # Unpad the image
     recon = recon[:, 0:img_h, 0:img_w]
     
@@ -112,8 +87,8 @@ pil_img.show()
 # Convert to tensor [3, H, W]
 to_tensor = T.ToTensor()
 img_tensor = to_tensor(pil_img)
-patches, origins, pad = image_to_patches(img_tensor, patch_size=64, overlap=8)
-recon = patches_to_image(patches, origins, img_tensor.shape, patch_size=64, overlap=8, pad=pad)
+patches, origins, pad = image_to_patches(img_tensor, patch_size=256)
+recon = patches_to_image(patches, origins, img_tensor.shape, patch_size=256, pad=pad)
 recon_pil = ToPILImage()(recon)
 recon_pil.show()
 print(pad)
