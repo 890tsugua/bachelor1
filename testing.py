@@ -21,7 +21,7 @@ base_noise_min = 100
 base_noise_max = 100
 use_gauss_noise = False
 gauss_noise_std = 10
-img_w, img_h = 128,128
+img_w, img_h = 64,64
 
 # Instantiate the datasets.
 train_dataset = PsfDataset( 1,

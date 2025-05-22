@@ -1,8 +1,10 @@
 from PsfSimulator import PsfSimulator, PsfDataset
 from scripts.plotting import PlotController
 
-sim = PsfSimulator(use_perlin_noise=True, perlin_min_max=(0.4,0.6), sigma_mean=1, snr_mean=5)
+sim = PsfSimulator(use_perlin_noise=False, perlin_min_max=(0.4,0.6), sigma_mean=1, snr_mean=5)
 image, target = sim.generate(num_spots=5)
+
+print(target)
 
 PlotController(image, target, None, 'buttons', False, 1, False)
 
@@ -14,9 +16,9 @@ num_spots_max = 8
 sigma_min = 1.0
 sigma_max = 1.0
 sigma_std = 0.2
-snr_min = 10
-snr_max = 10
-snr_std = 0.3
+snr_min = 5
+snr_max = 5
+snr_std = 0.0
 base_noise_min = 50
 base_noise_max = 100
 use_gauss_noise = False
@@ -33,3 +35,16 @@ dataset = PsfDataset(seed, num_datapoints, num_spots_min, num_spots_max, sigma_m
 # Get a sample
 img, target = dataset[0]
 PlotController(img, target, None, 'buttons', False, 1, False)
+
+import numpy as np
+a = np.zeros((10,10))
+a[1:3, 1:3] = 1
+print(a)
+
+sim = PsfSimulator(use_perlin_noise=True, perlin_min_max=(0.4,0.6), sigma_mean=1, snr_mean=5)
+psf = sim.make_psf(0.8, 250, (0.5,0.5))
+import PIL
+from PIL import Image
+im = Image.fromarray(psf)
+im = im.convert("L")
+im.show()
