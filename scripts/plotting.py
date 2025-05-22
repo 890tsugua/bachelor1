@@ -7,8 +7,12 @@ from utils import evaluate_prediction, move_dict_to_cpu
 
 class PlotController:
     def __init__(self, image, targets, predictions, type, show_preds, show_targets, show_scores):
+        plt.style.use('dark_background')
         self.original_image = image.clone().cpu()  # Keep the original image
-        self.targets = move_dict_to_cpu(targets)
+        if targets is not None:
+            self.targets = move_dict_to_cpu(targets)
+        else:
+            self.targets = None
         if predictions is not None:
             self.predictions = move_dict_to_cpu(predictions)
         else:
