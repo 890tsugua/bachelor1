@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.subpix_rcnn import SubpixRCNN
 from utils import move_data_to_device, move_dict_to_cpu, plot_image_boxes, evaluate_predictions
 from utils import evaluate_prediction
-from data_simulator import PsfDataset
+from data_simulator import PsfDataset   # USE NEW ONE
 import numpy as np
 from scripts.plotting import PlotController
 

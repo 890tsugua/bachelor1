@@ -64,7 +64,7 @@ class PlotController:
                     for i, score in enumerate(self.predictions['scores']):
                         self.ax.text(p_boxes[i][0].item(), p_boxes[i][1].item()-4, f"{score:.2f}", color="blue", fontsize=6)
         
-        self.ax.imshow(img.permute(1, 2, 0).cpu().numpy())
+        self.ax.imshow(img.permute(1, 2, 0).cpu().numpy(), vmin=0, vmax=1)
         
         if self.show_positions:
             if self.show_targets:

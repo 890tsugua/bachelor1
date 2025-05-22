@@ -44,15 +44,31 @@ valid_dataset = PsfDataset( 2,
                             img_w, img_h
                           )
 
-img, tar = valid_dataset[1]
-img2, tar2 = valid_dataset[2]
-print(img.shape)
+# img, tar = valid_dataset[1]
+# img2, tar2 = valid_dataset[2]
+# print(img.shape)
 
 device = 'cpu'
-img = move_data_to_device(img, device)
-tar = move_data_to_device(tar, device)
-img2 = move_data_to_device(img2, device)
-tar2 = move_data_to_device(tar2, device)
+# img = move_data_to_device(img, device)
+# tar = move_data_to_device(tar, device)
+# img2 = move_data_to_device(img2, device)
+# tar2 = move_data_to_device(tar2, device)
+# Load a png image
+
+from PIL import Image
+import torchvision.transforms as T
+
+# Load the image as grayscale
+img_path = "/Users/august/Desktop/bachelor/bachelor1/screenshot.png"
+pil_img = Image.open(img_path).convert("L")  # "L" = grayscale
+
+# Convert to 3 channels by repeating
+to_tensor = T.ToTensor()
+img_tensor = to_tensor(pil_img)  # shape: (1, H, W)
+img_tensor = img_tensor.repeat(3, 1, 1)     # shape: (3, H, W)
+
+print(img_tensor.shape)
+
 
 
 backbone = resnet_fpn_backbone("resnet50", pretrained=True)
@@ -63,23 +79,20 @@ model.to(device=device)
 path = r"/Users/august/Desktop/bachelor/bachelor1/first_real_run.pth"
 model.load_state_dict(torch.load(path, map_location=device))
 model.eval()
-images = [img, img2]
 with torch.no_grad():
-    out = model([img])
+    out = model([img_tensor])
 
-eval = evaluate_predictions(out,[tar], 0.5)
-print(eval)
+#eval = evaluate_predictions(out,[tar], 0.5)
+#print(eval)
 out = out[0]
 print(out)
 move_dict_to_cpu(out)
-move_dict_to_cpu(tar)
+#move_dict_to_cpu(tar)
 
 
 from scripts.plotting import PlotController
 # Create an instance of the PlotController
-plot_controller = PlotController(img, tar, out, 'eval', 1, 1, 1)
-
-
+plot_controller = PlotController(img_tensor, None, out, 'buttons', 1, 1, 1)
 
 # Perlin Noise
 # Patching
