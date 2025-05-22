@@ -166,8 +166,7 @@ class PsfDataset(Dataset):
                 num_datapoints, 
                 num_spots_min,
                 num_spots_max,
-                sigma_min,
-                sigma_max,
+                sigma_mean,
                 sigma_std,
                 snr_min,
                 snr_max,
@@ -189,8 +188,7 @@ class PsfDataset(Dataset):
         self._num_spots_min = num_spots_min
         self._num_spots_max = num_spots_max
 
-        self._sigma_min = sigma_min
-        self._sigma_max = sigma_max
+        self._sigma_mean = sigma_mean
         self._sigma_std = sigma_std
 
         self._snr_min = snr_min
@@ -215,10 +213,8 @@ class PsfDataset(Dataset):
         
     def __getitem__(self, idx):
         # In here generate random parameters for the image generation:
-        # Number of spots, mean sigma, mean snr, base noise.
-
+        
         num_spots = np.random.randint(self._num_spots_min, self._num_spots_max+1)
-        sigma = np.random.uniform(self._sigma_min, self._sigma_max)
         snr = np.random.uniform(self._snr_min, self._snr_max)
         base_noise = np.random.randint(self._base_noise_min, self._base_noise_max+1)
         
@@ -226,7 +222,7 @@ class PsfDataset(Dataset):
         # Istantiate the simulator
         self.psf_simulator = PsfSimulator(img_w=self._img_w,
                                           img_h=self._img_h,
-                                          sigma_mean=sigma,
+                                          sigma_mean=self._sigma_mean,
                                           sigma_std=self._sigma_std,
                                           snr_mean=snr,
                                           snr_std=self._snr_std,

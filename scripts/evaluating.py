@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.subpix_rcnn import SubpixRCNN
 from utils import move_data_to_device, move_dict_to_cpu, plot_image_boxes, evaluate_predictions
 from utils import evaluate_prediction
-from data_simulator import PsfDataset   # USE NEW ONE
+from PsfSimulator import PsfDataset 
 import numpy as np
 from scripts.plotting import PlotController
 
@@ -57,14 +57,16 @@ def test_model_fixed_snr(model, snr, start_density, end_density, step_density, n
     Returns:
     - results: A dictionary containing the evaluation metrics for each density.
     """
-    seed = kwargs.get('seed', 0)
+    seed = kwargs.get('seed', None)
+    sigma_std = kwargs.get('sigma_std', 0.1)
     sigma_mean = kwargs.get('sigma_mean', 1.0)
-    sigma_std = kwargs.get('sigma_std', 0.2)
     snr_std = kwargs.get('snr_std', 0.1)
     base_noise_min = kwargs.get('base_noise_min', 20)
     base_noise_max = kwargs.get('base_noise_max', 150)
-    use_gauss_noise = kwargs.get('use_gauss_noise', True)
+    use_gauss_noise = kwargs.get('use_gauss_noise', False)
     gauss_noise_std = kwargs.get('gauss_noise_std', 0.05)
+    use_perlin_noise = kwargs.get('use_perlin_noise', False)
+    perlin_min_max = kwargs.get('perlin_min_max', (0.4, 0.6))
     img_w = kwargs.get('img_w', 64)
     img_h = kwargs.get('img_h', 64)
     um_per_pixel = kwargs.get('um_per_pixel', 0.1) # Standard 100nm per pixel
@@ -81,12 +83,15 @@ def test_model_fixed_snr(model, snr, start_density, end_density, step_density, n
                              num_spots_max=num_spots,
                              sigma_mean=sigma_mean,
                              sigma_std=sigma_std,
-                             snr_mean=snr,
+                             snr_min=snr,
+                             snr_max=snr,
                              snr_std=snr_std,
                              base_noise_min=base_noise_min,
                              base_noise_max=base_noise_max,
                              use_gauss_noise=use_gauss_noise,
                              gauss_noise_std=gauss_noise_std,
+                             use_perlin_noise=use_perlin_noise,
+                             perlin_min_max=perlin_min_max,
                              img_w=img_w, 
                              img_h=img_h)
         all_predictions = []
