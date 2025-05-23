@@ -12,7 +12,7 @@ import PIL
 from PIL import Image
 import torchvision.transforms as T
 import pickle
-
+import time
 
 device = 'cuda'
 # seed = None
@@ -64,19 +64,20 @@ to_tensor = T.ToTensor()
 img_tensor = to_tensor(pil_img)  # shape: (1, H, W)
 img_tensor = img_tensor.repeat(3, 1, 1)  # shape: (3, H, W)
 
-
+t0 = time.time()
 with torch.no_grad():
     pred = model([img_tensor.to(device)])
+print(f"Prediction time: {time.time() - t0:.3f} seconds")
 pred = pred[0]
 theo_pred = move_dict_to_cpu(pred)
 
 
-save_path = r'd:\zeiss\Desktop\coding\Hilger\bachelor\theo_pred.pkl'
+# save_path = r'd:\zeiss\Desktop\coding\Hilger\bachelor\theo_pred.pkl'
 
-with open(save_path, 'wb') as f:
-    pickle.dump(theo_pred, f)
+# with open(save_path, 'wb') as f:
+#     pickle.dump(theo_pred, f)
 
-PlotController(img_tensor, None, pred, 'buttons', 1,0,1)
+PlotController(img_tensor, None, theo_pred, 'buttons', 1,0,1)
 
 # target = move_dict_to_cpu(target)
 # print(target['positions'], target['true_snrs'])
