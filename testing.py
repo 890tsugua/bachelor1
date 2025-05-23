@@ -81,3 +81,15 @@ PlotController(img_tensor, None, pred, 'buttons', 1,0,1)
 # target = move_dict_to_cpu(target)
 # print(target['positions'], target['true_snrs'])
 # PlotController(image, target, pred, 'eval', 1, 1, 1)
+
+# Perlin Noise
+# Patching
+# performance vs density and snr
+# Edge cases... extremely high background noise
+# Run on some real data
+# Size prediction
+# Future prospects: Sammenlign med andre metoder
+# Hvad ville jeg have gjort anderledes?
+# Hvad hvis jeg havde mere tid? 3d... psf vs non-psf
+# SPTnet bruger perlin noise
+# Nikos spørger: Jaccard og IOU
