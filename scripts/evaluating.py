@@ -9,6 +9,8 @@ from utils import evaluate_prediction
 from PsfSimulator import PsfDataset 
 import numpy as np
 from scripts.plotting import PlotController
+from torchvision.ops import box_iou
+from collections import defaultdict
 
 
 # I want functions:
@@ -40,6 +42,76 @@ def density_to_num_spots(density, img_w, img_h, um_per_pixel):
     area_in_um = (img_w * img_h) * um_per_pixel**2
     num_spots = density * area_in_um
     return int(num_spots)
+
+def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
+    """
+    Evaluate the recall.
+    Args:
+        model: The model to be evaluated.
+        reps: Number of images for the evaluation.
+        device: The device to run the model on (CPU or GPU).
+        iou_thresh: IoU threshold for matching predictions to ground truth.
+        **kwargs: Additional arguments for the dataset.
+    """
+    results = defaultdict(lambda: {'TP':0, 'FN':0})
+    model.eval()
+    model.to(device)
+
+    dataset = PsfDataset(
+        seed = kwargs.get('seed', None),
+        num_datapoints=1,
+        num_spots_min=1,
+        num_spots_max=1,
+        sigma_mean = kwargs.get('sigma_mean', 1.0),
+        sigma_std = kwargs.get('sigma_std', 0.1),
+        snr_min = kwargs.get('snr_min', 1),
+        snr_max = kwargs.get('snr_max', 15),
+        snr_std = kwargs.get('snr_std', 0.0),
+        base_noise_min=20,
+        base_noise_max=150,
+        use_gauss_noise=False,
+        gauss_noise_std=0.05,
+        use_perlin_noise=False,
+        perlin_min_max=(0.4, 0.6),
+        img_w=64, 
+        img_h=64)
+
+    for i in range(reps):
+        image, target = dataset[0]
+        image = move_data_to_device(image, device)
+        target = move_data_to_device(target, device)
+        with torch.no_grad():
+            prediction = model([image])
+        true_snrs = target['true_snrs']
+        
+        # Matching logic
+        pred_boxes = prediction[0]['boxes']
+        gt_boxes = target['boxes']
+        iou_matrix = box_iou(pred_boxes, gt_boxes)
+        matches = []
+        used_preds = set()
+        used_gts = set()
+        pairs = [(i, j, iou_matrix[i,j].item())
+                for i in range(iou_matrix.shape[0])
+                for j in range(iou_matrix.shape[1])] # Makes a list of tuples. All possible pairs
+        # Sort pairs by IoU in descending order
+        pairs.sort(key=lambda x: x[2], reverse=True)
+        # Now greedy matching.
+        for i, j, iou in pairs:
+            if iou < iou_thresh:
+                continue
+            if i not in used_preds and j not in used_gts:
+                matches.append((i,j))
+                used_preds.add(i)
+                used_gts.add(j)
+        
+        for j in range(len(gt_boxes)):
+            if j not in used_gts:  # Ground truth box not matched
+                results[round(true_snrs[j].item(), 1)]['FN'] += 1  # Increment FN
+            else:
+                results[round(true_snrs[j].item(), 1)]['TP'] += 1  # Increment TP
+    return results
+
 
 def test_model_fixed_snr(model, snr, start_density, end_density, step_density, num_images, device, **kwargs):
     """

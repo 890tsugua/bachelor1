@@ -162,23 +162,23 @@ class PsfDataset(Dataset):
     The class is designed to load images along with their corresponding segmentation masks, bounding box annotations, and labels.
     """
     def __init__(self, 
-                seed, 
-                num_datapoints, 
-                num_spots_min,
-                num_spots_max,
-                sigma_mean,
-                sigma_std,
-                snr_min,
-                snr_max,
-                snr_std,
-                base_noise_min,
-                base_noise_max,
-                use_gauss_noise,
-                gauss_noise_std,
-                use_perlin_noise,
-                perlin_min_max,
-                img_w, 
-                img_h):
+                seed=None, 
+                num_datapoints=1, 
+                num_spots_min=1,
+                num_spots_max=80,
+                sigma_mean=1.0,
+                sigma_std=0.1,
+                snr_min=2,
+                snr_max=20,
+                snr_std=0.2,
+                base_noise_min=20,
+                base_noise_max=150,
+                use_gauss_noise=False,
+                gauss_noise_std=0.05,
+                use_perlin_noise=False,
+                perlin_min_max=(0.4, 0.6),
+                img_w=64, 
+                img_h=64):
 
         super(Dataset, self).__init__()
         
