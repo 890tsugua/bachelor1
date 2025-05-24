@@ -15,7 +15,7 @@ import pickle
 import time
 import matplotlib.pyplot as plt
 
-device = 'cpu'
+device = 'cuda'
 seed = None
 num_datapoints = 1
 num_spots_min = 1
@@ -35,7 +35,9 @@ img_w = 64
 img_h = 64
 
 sim = PsfSimulator(snr_mean=3, base_noise=2000)
-array, image, target = sim.generate(num_spots=20)
+t0 = time.time()
+image, target = sim.generate(num_spots=20)
+print(f"Time taken to generate image: {time.time() - t0:.3f} seconds")
 print(target)
 
 print(array.max())

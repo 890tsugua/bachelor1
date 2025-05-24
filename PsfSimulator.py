@@ -111,7 +111,7 @@ class PsfSimulator:
         for (x,y) in positions:
             x1, x2 = int(x-2), int(x+3)
             y1, y2 = int(y-2), int(y+3)
-            signal = np.max(array[y1:y2, x1:x2])
+            signal = np.nanmax(array[y1:y2, x1:x2])
             signals.append(signal)
             array[y1:y2, x1:x2][psf_mask] = np.nan
 
@@ -179,12 +179,13 @@ class PsfSimulator:
         true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
-        one_channel = torch.from_numpy(array.copy())
-        one_channel /= one_channel.max()
+        max_scale = 10000
+        one_channel = torch.from_numpy(np.clip(array, 0, max_scale))
+        one_channel /= max_scale  # Normalize to [0, 1]
         image = torch.stack([one_channel] * 3, axis=0)
         targets = self.make_targets(positions + 1, true_snrs)
 
-        return array, image, targets
+        return image, targets
 
 class PsfDataset(Dataset):
     """
