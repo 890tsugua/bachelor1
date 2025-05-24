@@ -1,5 +1,9 @@
 from PsfSimulator import PsfSimulator, PsfDataset
 from scripts.plotting import PlotController
+import PIL
+from PIL import Image
+import torchvision.transforms as T
+
 
 #sim = PsfSimulator(use_perlin_noise=False, perlin_min_max=(0.4,0.6), sigma_mean=1, snr_mean=5)
 #image, target = sim.generate(num_spots=5)
@@ -11,15 +15,15 @@ from scripts.plotting import PlotController
 # Instatiate the dataset
 seed = None
 num_datapoints = 100
-num_spots_min = 3
-num_spots_max = 8
+num_spots_min = 5
+num_spots_max = 5
 sigma_mean= 1.0
 sigma_std = 0.1
 snr_min = 5
 snr_max = 5
 snr_std = 0.0
-base_noise_min = 50
-base_noise_max = 100
+base_noise_min = 2000
+base_noise_max = 2000
 use_gauss_noise = False
 gauss_noise_std = 0.02
 use_perlin_noise = False
@@ -33,8 +37,21 @@ dataset = PsfDataset(seed, num_datapoints, num_spots_min, num_spots_max, sigma_m
 
 # Get a sample
 img, target = dataset[0]
+
+# Tensor to pil image
+img = img.clone().cpu()
+to_pil = T.ToPILImage()
+im = to_pil(img)
+# Convert to grayscale
+im = im.convert("L")
+im.save("/Users/august/Desktop/bachelor/bachelor1/testhighbg.png")
+
 print(target)
 PlotController(img, target, None, 'buttons', False, 1, False)
+
+# Save the image
+
+
 
 #import numpy as np
 #a = np.zeros((10,10))

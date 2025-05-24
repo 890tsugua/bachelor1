@@ -50,7 +50,7 @@ class PsfSimulator:
             min_perlin, max_perlin = self.perlin_min_max
             perlin = perlin * (max_perlin - min_perlin) + min_perlin
             perlin *= base
-            array = np.full((img_h, img_w), 0)
+            array = np.full((img_h, img_w), ((max_perlin+min_perlin)/2) *base)
             array[pad:-pad, pad:-pad] += perlin.astype(np.int64)
         
         else:
@@ -82,29 +82,58 @@ class PsfSimulator:
         return np.mean(array[max(0, start_y):end_y, max(0, start_x):end_x])
 
     def draw_array(self, positions, sigmas, input_array, snrs, pad):
-        means = []
+        copied_array = input_array.copy()
         for i, ((x, y), sigma, snr) in enumerate(zip(positions, sigmas, snrs)):
             subpos = (x%1, y%1)
-            mean = self.calculate_background_mean(input_array,sigma,pad+x,pad+y)
-            means.append(mean)
+            mean = self.calculate_background_mean(copied_array,sigma,pad+x,pad+y)
 
             psf = self.make_psf(sigma, self.calculate_signal_value(mean, snr), subpos)
             x, y = x.astype(int), y.astype(int)
             start_x, start_y = pad+x - int(np.ceil(sigma*3)), pad+y - int(np.ceil(sigma*3))  # Insert PSF input_arrays from their top left corner.
             input_array[start_y:start_y + psf.shape[0], start_x:start_x + psf.shape[1]] += psf
 
-        # Remove padding and clip
-        unpadded_array = np.clip(input_array[pad:-pad, pad:-pad],0,255)
-        return unpadded_array.astype(np.uint8), means
+        # Remove padding
+        unpadded_array = input_array[pad:-pad, pad:-pad]
+        return unpadded_array.astype(np.float32)
 
-    def find_true_snrs(self, array, positions, means, img_w, img_h):
+    def find_true_snrs(self, arr, pos, img_w, img_h):
+        rad = 6
+        yy, xx = np.ogrid[-2:3,-2:3]
+        psf_mask = xx**2 + yy**2 < 6
+        signals = []
         snrs = []
-        for (x,y), mean in zip(positions, means):
-            start_x, start_y = int(np.ceil(x - 1)), int(np.ceil(y - 1))
-            end_x, end_y = int(np.ceil(x + 2)), int(np.ceil(y + 2))
-            signal = np.max(array[max(0,start_y):min(end_y, img_h), max(0,start_x):min(end_x, img_w)])
-            snr = signal / np.sqrt(mean)
+        # Cut out all the PSFs from the array
+        array = np.copy(arr)
+        positions = np.copy(pos)
+        array = np.pad(array, [[rad,rad],[rad,rad]], mode='median')
+        positions += rad
+
+        for (x,y) in positions:
+            x1, x2 = int(x-2), int(x+3)
+            y1, y2 = int(y-2), int(y+3)
+            signal = np.max(array[y1:y2, x1:x2])
+            signals.append(signal)
+            array[y1:y2, x1:x2][psf_mask] = np.nan
+
+        for i, (x,y) in enumerate(positions):
+            x1, x2 = int(x-rad+1), int(x+rad)
+            y1, y2 = int(y-rad+1), int(y+rad)
+            mean = np.nanmean(array[y1:y2, x1:x2])
+            std = np.nanstd(array[y1:y2, x1:x2])
+            snr1 = (signals[i]-mean) / np.sqrt(mean)
+            snr = (signals[i]-mean) / std
             snrs.append(snr)
+
+        
+        
+        # snrs = []
+        # for (x,y), mean in zip(positions, means):
+        #     start_x, start_y = int(x - 1), int(y - 1)
+        #     end_x, end_y = int(np.ceil(x + 1)), int(np.ceil(y + 1))
+        #     signal = np.max(array[max(0,start_y):min(end_y, img_h), max(0,start_x):min(end_x, img_w)])
+        #     print(signal)
+        #     snr = (signal-mean) / np.sqrt(mean)
+        #     snrs.append(snr)
 
         # for (x,y), sigma in zip(positions, sigmas):
         #     start_x, start_y = int(np.ceil(x - sigma * 3*2)), int(np.ceil(y - sigma * 3*2*2))
@@ -144,17 +173,18 @@ class PsfSimulator:
         pad = int(np.ceil(3 * np.max(sigmas) * 2))
         
         background = self.make_background(self.base_noise, pad)
-        array, means = self.draw_array(positions, sigmas, background, snrs, pad)
+        array = self.draw_array(positions, sigmas, background, snrs, pad)
         array = self.add_poisson(array)
 
-        true_snrs = self.find_true_snrs(array, positions, means, self.img_w, self.img_h)
+        true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
 
-        array = np.pad(np.clip(array, 0, 255).astype(np.uint8), ((1, 1), (1, 1)), mode='median')
-
-        image = torch.tensor(np.stack([array.astype(np.float32) / 255] * 3, axis=0))
+        array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
+        one_channel = torch.from_numpy(array.copy())
+        one_channel /= one_channel.max()
+        image = torch.stack([one_channel] * 3, axis=0)
         targets = self.make_targets(positions + 1, true_snrs)
 
-        return image, targets
+        return array, image, targets
 
 class PsfDataset(Dataset):
     """

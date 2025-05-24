@@ -26,6 +26,8 @@ class PlotController:
 
         # Prepare enlarged image for display
         img = self.original_image.unsqueeze(0)
+        img -= torch.min(img)
+        img /= torch.max(img)
         img = F.interpolate(img, scale_factor=10, mode='nearest')
         self.enlarged_image = img.squeeze(0).cpu()
         self.fig, self.ax = plt.subplots()
