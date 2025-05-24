@@ -22,8 +22,8 @@ num_spots_min = 1
 num_spots_max = 1
 sigma_mean= 1.0
 sigma_std = 0.1
-snr_min = 3
-snr_max = 3
+snr_min = 8
+snr_max = 8
 snr_std = 0.0
 base_noise_min = 1000
 base_noise_max = 1000
@@ -34,17 +34,17 @@ perlin_min_max = (0.4, 0.6)
 img_w = 64
 img_h = 64
 
-sim = PsfSimulator(snr_mean=3, base_noise=2000)
+sim = PsfSimulator(snr_mean=5, base_noise=6000)
 t0 = time.time()
 image, target = sim.generate(num_spots=20)
 print(f"Time taken to generate image: {time.time() - t0:.3f} seconds")
 print(target)
 
-print(array.max())
-plt.imshow(array, cmap='gray')
-plt.colorbar()  # Optional: shows a color scale
-plt.title("Array Plot")
-plt.show()
+# print(array.max())
+# plt.imshow(array, cmap='gray')
+# plt.colorbar()  # Optional: shows a color scale
+# plt.title("Array Plot")
+# plt.show()
 PlotController(image, target, None, 'buttons', 0, 1, 1)
 
 # dataset = PsfDataset(seed, num_datapoints, num_spots_min, num_spots_max, sigma_mean, sigma_std,

@@ -26,8 +26,8 @@ class PlotController:
 
         # Prepare enlarged image for display
         img = self.original_image.unsqueeze(0)
-        img -= torch.min(img)
-        img /= torch.max(img)
+        # img -= torch.min(img)
+        # img /= torch.max(img)
         img = F.interpolate(img, scale_factor=10, mode='nearest')
         self.enlarged_image = img.squeeze(0).cpu()
         self.fig, self.ax = plt.subplots()
@@ -70,7 +70,7 @@ class PlotController:
                     for i, score in enumerate(self.predictions['scores']):
                         self.ax.text(p_boxes[i][0].item(), p_boxes[i][1].item()-4, f"{score:.2f}", color="blue", fontsize=6)
         
-        self.ax.imshow(img.permute(1, 2, 0).cpu().numpy(), vmin=0, vmax=1)
+        self.ax.imshow(img.permute(1, 2, 0).cpu().numpy())
         
         if self.show_positions:
             if self.show_targets:

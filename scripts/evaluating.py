@@ -107,9 +107,9 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
         
         for j in range(len(gt_boxes)):
             if j not in used_gts:  # Ground truth box not matched
-                results[round(true_snrs[j].item(), 1)]['FN'] += 1  # Increment FN
+                results[round(true_snrs[j].item(), 0)]['FN'] += 1  # Increment FN
             else:
-                results[round(true_snrs[j].item(), 1)]['TP'] += 1  # Increment TP
+                results[round(true_snrs[j].item(), 0)]['TP'] += 1  # Increment TP
     return results
 
 
