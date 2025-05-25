@@ -79,6 +79,12 @@ with torch.no_grad():
 pred = pred[0]
 pred = move_dict_to_cpu(pred)
 
+# Save the prediction
+save_path = r'd:\zeiss\Desktop\coding\Hilger\bachelor\pred_2_on_theo.pkl'
+with open(save_path, 'wb') as f:
+    pickle.dump(pred, f)
+
+
 # Increase contrast and brightness for visualization. Not sure how its done but it works
 bcimage = np.clip(bcimage, 0, 4200)
 bcimage /= np.max(bcimage)  # Normalize the image to [0, 1]
