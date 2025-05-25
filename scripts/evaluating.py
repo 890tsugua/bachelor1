@@ -56,7 +56,7 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
     results = defaultdict(lambda: {'TP':0, 'FN':0})
     model.eval()
     model.to(device)
-
+    dp = kwargs.get('dp', 1)  # Decimal places for rounding SNRs
     dataset = PsfDataset(
         seed = kwargs.get('seed', None),
         num_datapoints=1,
@@ -67,8 +67,8 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
         snr_min = kwargs.get('snr_min', 1),
         snr_max = kwargs.get('snr_max', 15),
         snr_std = kwargs.get('snr_std', 0.0),
-        base_noise_min=20,
-        base_noise_max=150,
+        base_noise_min=10,
+        base_noise_max=6000,
         use_gauss_noise=False,
         gauss_noise_std=0.05,
         use_perlin_noise=False,
@@ -77,43 +77,58 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
         img_h=64)
 
     for i in range(reps):
+        if i%100 == 0:
+            print(f"Processing image {i+1}/{reps}")
         image, target = dataset[0]
         image = move_data_to_device(image, device)
         target = move_data_to_device(target, device)
         with torch.no_grad():
             prediction = model([image])
-        true_snrs = target['true_snrs']
-        
-        # Matching logic
-        pred_boxes = prediction[0]['boxes']
-        gt_boxes = target['boxes']
-        iou_matrix = box_iou(pred_boxes, gt_boxes)
-        matches = []
-        used_preds = set()
-        used_gts = set()
-        pairs = [(i, j, iou_matrix[i,j].item())
-                for i in range(iou_matrix.shape[0])
-                for j in range(iou_matrix.shape[1])] # Makes a list of tuples. All possible pairs
-        # Sort pairs by IoU in descending order
-        pairs.sort(key=lambda x: x[2], reverse=True)
-        # Now greedy matching.
-        for i, j, iou in pairs:
-            if iou < iou_thresh:
-                continue
-            if i not in used_preds and j not in used_gts:
-                matches.append((i,j))
-                used_preds.add(i)
-                used_gts.add(j)
-        
-        for j in range(len(gt_boxes)):
-            if j not in used_gts:  # Ground truth box not matched
-                results[round(true_snrs[j].item(), 0)]['FN'] += 1  # Increment FN
-            else:
-                results[round(true_snrs[j].item(), 0)]['TP'] += 1  # Increment TP
+        true_snr = target['true_snrs']
+        pred_boxes = prediction[0]['boxes']  # Get the boxes from the prediction 
+        gt_box = target['boxes'] # Only one box per image in this case
+        boxfound = False
+        for box in pred_boxes:
+            if box_iou(box.unsqueeze(0), gt_box).item() > iou_thresh:
+                # If the prediction box matches the ground truth box
+                results[round(true_snr.item(),dp)]['TP'] += 1
+                boxfound = True
+        if not boxfound:
+            results[round(true_snr.item(),dp)]['FN'] += 1
+
     return results
 
 
-def test_model_fixed_snr(model, snr, start_density, end_density, step_density, num_images, device, **kwargs):
+    #     # Matching logic
+    #     pred_boxes = prediction[0]['boxes']
+    #     gt_boxes = target['boxes']
+    #     iou_matrix = box_iou(pred_boxes, gt_boxes)
+    #     matches = []
+    #     used_preds = set()
+    #     used_gts = set()
+    #     pairs = [(i, j, iou_matrix[i,j].item())
+    #             for i in range(iou_matrix.shape[0])
+    #             for j in range(iou_matrix.shape[1])] # Makes a list of tuples. All possible pairs
+    #     # Sort pairs by IoU in descending order
+    #     pairs.sort(key=lambda x: x[2], reverse=True)
+    #     # Now greedy matching.
+    #     for i, j, iou in pairs:
+    #         if iou < iou_thresh:
+    #             continue
+    #         if i not in used_preds and j not in used_gts:
+    #             matches.append((i,j))
+    #             used_preds.add(i)
+    #             used_gts.add(j)
+        
+    #     for j in range(len(gt_boxes)):
+    #         if j not in used_gts:  # Ground truth box not matched
+    #             results[round(true_snrs[j].item(), 0)]['FN'] += 1  # Increment FN
+    #         else:
+    #             results[round(true_snrs[j].item(), 0)]['TP'] += 1  # Increment TP
+    # return results
+
+
+def test_model_fixed_snr(model, snr, num_images, device, **kwargs):
     """
     Test the model with a fixed SNR across a range of densities.
     
@@ -147,7 +162,14 @@ def test_model_fixed_snr(model, snr, start_density, end_density, step_density, n
     model.eval()
     model.to(device)
 
-    for density in np.arange(start_density, end_density + step_density, step_density):
+    # Fine steps for small values
+    small = np.arange(0.04, 0.1, 0.01)      # 0.04, 0.05, ..., 0.10
+    medium = np.arange(0.1, 1.0, 0.1)        # 0.2, 0.3, ..., 0.9
+    large = np.arange(1, 5, 1)               # 1, 2, 3
+    densities = np.unique(np.concatenate([small, medium, large]))
+
+    for density in densities:
+        print(f"Testing density: {density}")
         num_spots = density_to_num_spots(density, img_w, img_h, um_per_pixel)
         dataset = PsfDataset(seed=seed,
                              num_datapoints=num_images,
@@ -174,7 +196,7 @@ def test_model_fixed_snr(model, snr, start_density, end_density, step_density, n
             target = move_data_to_device(target, device)
             with torch.no_grad():
                 prediction = model([image])
-            all_predictions.append(prediction[0])   # THIS IS WEIRD
+            all_predictions.append(prediction[0]) 
             all_targets.append(target)
         
         # Evaluate predictions
