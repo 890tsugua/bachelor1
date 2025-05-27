@@ -46,7 +46,10 @@ class PsfSimulator:
             array = np.clip(np.random.normal(base, self.gauss_noise_std, (img_h, img_w)), 0, None)
         
         elif self.use_perlin_noise:
-            perlin = generate_perlin_noise_2d((img_h - 2 * pad, img_w - 2 * pad), (4,4), (0, 0))
+            # Draw a random number 1,2,4,8
+            d1 = np.random.choice([1, 2, 4, 8])
+            d2 = np.random.choice([1, 2, 4, 8])
+            perlin = generate_perlin_noise_2d((img_h - 2 * pad, img_w - 2 * pad), (d1,d2), (0, 0))
             min_perlin, max_perlin = self.perlin_min_max
             perlin = perlin * (max_perlin - min_perlin) + min_perlin
             perlin *= base
