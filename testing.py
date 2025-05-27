@@ -20,11 +20,12 @@ import numpy as np
 device = 'cpu'
 
 ### LOAD THE MODEL ###
-backbone = resnet_fpn_backbone("resnet50", pretrained=True)
-kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.9}
+backbone = resnet_fpn_backbone("resnet50", pretrained=False, trainable_layers=5)
+kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.5, "image_mean":[0,0,0], "image_std":[1,1,1]}
+
 model = SubpixRCNN(backbone, num_classes=2, device=device, **kwargs)
 model.to(device=device)
-path = r"/Users/august/Desktop/bachelor/bachelor1/runs_LOCAL/second_long_run.pth"
+path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\notebooks\subpix_rcnn_models\2025-05-27_18-10-28\second_long_run.pth"
 model.load_state_dict(torch.load(path, map_location=device))
 
 ## FOR SIMULATING DATA AND TESTING IT ON THE MODEL ###
@@ -35,14 +36,14 @@ num_spots_max = 15
 sigma_mean= 1.5
 sigma_std = 0.0
 snr_min = 1
-snr_max = 2
+snr_max = 4
 snr_std = 0.0
 base_noise_min = 1000
-base_noise_max = 5000
+base_noise_max = 10000
 use_gauss_noise = False
 gauss_noise_std = 0
-use_perlin_noise = False
-perlin_min_max = (0.4, 0.6)
+use_perlin_noise = True
+perlin_min_max = (0.8, 0.2)
 img_w = 64
 img_h = 64
 dataset = PsfDataset(seed, num_datapoints, num_spots_min, num_spots_max, sigma_mean, sigma_std,

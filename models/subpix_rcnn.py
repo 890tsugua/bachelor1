@@ -168,7 +168,7 @@ class SubpixRCNN(FasterRCNN):
             batch_size_per_image=kwargs.get("batch_size_per_image", 512),
             positive_fraction=kwargs.get("positive_fraction", 0.25),
             bbox_reg_weights=kwargs.get("bbox_reg_weights", None),
-            score_thresh=kwargs.get("score_thresh", 0.5),
+            score_thresh=kwargs.get("score_thresh", 0.05),
             nms_thresh=kwargs.get("nms_thresh", 0.5),
             detections_per_img=kwargs.get("detections_per_img", 100), # No need to pass mask variables, they default to None
             subpixel_head=subpixel_head
