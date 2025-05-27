@@ -14,19 +14,19 @@ import torchvision.transforms as T
 
 # Instatiate the dataset
 seed = None
-num_datapoints = 100
-num_spots_min = 10
-num_spots_max = 10
+num_datapoints = 1
+num_spots_min = 20
+num_spots_max = 20
 sigma_mean= 1.0
 sigma_std = 0.1
-snr_min = 5
-snr_max = 5
+snr_min = 2
+snr_max = 2
 snr_std = 0.0
 base_noise_min = 100
 base_noise_max = 100
 use_gauss_noise = False
 gauss_noise_std = 0.02
-use_perlin_noise = False
+use_perlin_noise = True
 perlin_min_max = (0.4, 0.6)
 img_w = 64
 img_h = 64
@@ -36,11 +36,4 @@ dataset = PsfDataset(seed, num_datapoints, num_spots_min, num_spots_max, sigma_m
                       gauss_noise_std, use_perlin_noise, perlin_min_max, img_w, img_h)
 
 image, target = dataset[0]
-snrs = target['true_snrs']
-# Plot the distribution of snrs
-import matplotlib.pyplot as plt
-plt.hist(snrs, bins=50, edgecolor='black')
-plt.xlabel('SNR')
-plt.ylabel('Frequency')
-plt.title('Distribution of SNRs')
-plt.show()
+PlotController(image, target, None, 'buttons', False, 1, False)

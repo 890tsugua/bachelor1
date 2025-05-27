@@ -72,7 +72,7 @@ class PsfSimulator:
         yy, xx = np.ogrid[-radius:radius + 1, -radius:radius + 1]
         subpos = (subpos[0] - 0.5, subpos[1] - 0.5)
         r2 = (xx - subpos[0]) ** 2 + (yy - subpos[1]) ** 2
-        signals = np.exp(-r2 / (2 * sigma ** 2))
+        signals = np.exp(-r2 / (2 * sigma ** 2)) 
         array = signals * intensity
         return array.astype(np.float32)
 
@@ -118,11 +118,11 @@ class PsfSimulator:
         for i, (x,y) in enumerate(positions):
             x1, x2 = int(x-rad+1), int(x+rad)
             y1, y2 = int(y-rad+1), int(y+rad)
-            mean = np.nanmean(array[y1:y2, x1:x2])
+            mean = np.nanmedian(array[y1:y2, x1:x2])
             std = np.nanstd(array[y1:y2, x1:x2])
             snr1 = (signals[i]-mean) / np.sqrt(mean)
             snr = (signals[i]-mean) / std
-            snrs.append(snr)
+            snrs.append(snr1)
 
         
         
@@ -179,10 +179,17 @@ class PsfSimulator:
         true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
-        max_scale = 10000
-        one_channel = torch.from_numpy(np.clip(array, 0, max_scale))
-        one_channel /= max_scale  # Normalize to [0, 1]
-        image = torch.stack([one_channel] * 3, axis=0)
+        normalization = 'minmax'
+        
+        if normalization == 'minmax':
+            array -= np.min(array)
+            array /= np.max(array)
+        elif normalization == 'absolute':
+            max_scale = 10000
+            array /= max_scale
+
+        array = torch.from_numpy(array).float()
+        image = torch.stack([array] * 3, axis=0)
         targets = self.make_targets(positions + 1, true_snrs)
 
         return image, targets

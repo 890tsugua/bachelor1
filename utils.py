@@ -4,6 +4,24 @@ from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
 import torch.nn.functional as F
 import torchvision
 from torchvision.ops import box_iou
+import sys
+import PIL
+from PIL import Image
+import tifffile
+
+# Open the TIFF file
+def extract_frame_from_tiff(tiff_file, frame_index):
+    try:
+        with tifffile.TiffFile(tiff_file) as tif:
+            if frame_index < 0 or frame_index >= len(tif.pages):
+                raise IndexError("Frame index out of range.")
+            page = tif.pages[frame_index]
+            image = page.asarray()
+            return Image.fromarray(image)
+    except Exception as e:
+        print(f"Error extracting frame: {e}")
+        sys.exit(1)
+        # Then: image.save('/Users/august/Downloads/frame_t_0_extracted.tif', format='TIFF')
 
 def evaluate_prediction(prediction, target, iou_thresh = 0.5):
     """

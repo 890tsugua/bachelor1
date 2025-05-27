@@ -13,8 +13,7 @@ from torchvision.ops import box_iou
 from collections import defaultdict
 
 
-# I want functions:
-# 1. Run model across densities with a fixed SNR
+# LOC ERROR SHOULD BE ROOT MEAN SQUARED ERROR
 
 def test_model_once_plot(model, dataset, device, type='simple'):
     img, tar = dataset[1]

@@ -149,7 +149,9 @@ class SubpixRCNN(FasterRCNN):
         kwargs: set specific rpn, box head, transform etc.
         """
         self.device = kwargs.get('device', torch.device("cpu"))
-        super().__init__(backbone, num_classes) # Initialize FasterRCNN with default rpn, box head, transform and roi_heads
+        image_mean = kwargs.get('image_mean', None)
+        image_std = kwargs.get('image_std', None)
+        super().__init__(backbone, num_classes, image_mean=image_mean, image_std=image_std) # Initialize FasterRCNN with default rpn, box head, transform and roi_heads
         
         brp=self.roi_heads.box_roi_pool
         bh=self.roi_heads.box_head
