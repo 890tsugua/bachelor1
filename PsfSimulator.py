@@ -50,10 +50,12 @@ class PsfSimulator:
             d1 = np.random.choice([1, 2, 4, 8])
             d2 = np.random.choice([1, 2, 4, 8])
             perlin = generate_perlin_noise_2d((img_h - 2 * pad, img_w - 2 * pad), (d1,d2), (0, 0))
-            min_perlin, max_perlin = self.perlin_min_max
-            perlin = perlin * (max_perlin - min_perlin) + min_perlin
-            perlin *= base
-            array = np.full((img_h, img_w), ((max_perlin+min_perlin)/2) *base)
+            abs_min_perlin, abs_max_perlin = self.perlin_min_max
+            min_perlin = np.random.uniform()
+
+            perlin = ((perlin+1)/2) * (1-min_perlin) + min_perlin # Normalize to [min_perlin, 1]
+            perlin = 500 + (perlin-min_perlin) * (base-200) / (1-min_perlin)  # Scale to [500, base]
+            array = np.zeros((img_h, img_w)).astype(np.int64)
             array[pad:-pad, pad:-pad] += perlin.astype(np.int64)
         
         else:

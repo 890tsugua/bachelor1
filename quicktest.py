@@ -22,12 +22,12 @@ sigma_std = 0.1
 snr_min = 2
 snr_max = 2
 snr_std = 0.0
-base_noise_min = 100
-base_noise_max = 100
+base_noise_min = 300
+base_noise_max = 300
 use_gauss_noise = False
 gauss_noise_std = 0.02
 use_perlin_noise = True
-perlin_min_max = (0.4, 0.6)
+perlin_min_max = (0,1)
 img_w = 64
 img_h = 64
 
