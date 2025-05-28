@@ -17,15 +17,15 @@ import matplotlib.pyplot as plt
 import tifffile
 import numpy as np
 
-device = 'cpu'
+device = 'cuda'
 
 ### LOAD THE MODEL ###
 backbone = resnet_fpn_backbone("resnet50", pretrained=False, trainable_layers=5)
-kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.5, "image_mean":[0,0,0], "image_std":[1,1,1]}
+kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.7, "image_mean":[0,0,0], "image_std":[1,1,1]}
 
 model = SubpixRCNN(backbone, num_classes=2, device=device, **kwargs)
 model.to(device=device)
-path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\notebooks\subpix_rcnn_models\2025-05-27_18-10-28\second_long_run.pth"
+path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\notebooks\subpix_rcnn_models\2025-05-28_08-57-04\perlin_contd.pth"
 model.load_state_dict(torch.load(path, map_location=device))
 
 ## FOR SIMULATING DATA AND TESTING IT ON THE MODEL ###
@@ -35,8 +35,8 @@ num_spots_min = 10
 num_spots_max = 15
 sigma_mean= 1.5
 sigma_std = 0.0
-snr_min = 1
-snr_max = 4
+snr_min = 3
+snr_max = 3
 snr_std = 0.0
 base_noise_min = 1000
 base_noise_max = 10000
