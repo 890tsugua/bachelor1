@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import tifffile
 import numpy as np
 
-device = 'cuda'
+device = 'cuda' 
 
 ### LOAD THE MODEL ###
 <<<<<<< HEAD
