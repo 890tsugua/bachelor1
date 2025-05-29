@@ -126,30 +126,12 @@ class PsfSimulator:
         for i, (x,y) in enumerate(positions):
             x1, x2 = int(x-rad+1), int(x+rad)
             y1, y2 = int(y-rad+1), int(y+rad)
-            mean = np.nanmedian(array[y1:y2, x1:x2])
-            std = np.nanstd(array[y1:y2, x1:x2])
-            snr1 = (signals[i]-mean) / np.sqrt(mean)
-            snr = (signals[i]-mean) / std
-            snrs.append(snr1)
+            meanbg = np.nanmedian(array[y1:y2, x1:x2])
+            #std = np.nanstd(array[y1:y2, x1:x2])
+            snrbg = (signals[i]-meanbg) / np.sqrt(meanbg)
+            snrsig = (signals[i]-meanbg) / np.sqrt(signals[i])
+            snrs.append([snrbg, snrsig])
 
-        
-        
-        # snrs = []
-        # for (x,y), mean in zip(positions, means):
-        #     start_x, start_y = int(x - 1), int(y - 1)
-        #     end_x, end_y = int(np.ceil(x + 1)), int(np.ceil(y + 1))
-        #     signal = np.max(array[max(0,start_y):min(end_y, img_h), max(0,start_x):min(end_x, img_w)])
-        #     print(signal)
-        #     snr = (signal-mean) / np.sqrt(mean)
-        #     snrs.append(snr)
-
-        # for (x,y), sigma in zip(positions, sigmas):
-        #     start_x, start_y = int(np.ceil(x - sigma * 3*2)), int(np.ceil(y - sigma * 3*2*2))
-        #     end_x, end_y = int(np.ceil(start_x + sigma * 3*2)), int(np.ceil(start_y + sigma * 3*2))
-        #     mean = np.mean(array[max(0, start_y):end_y, max(0, start_x):end_x])
-        #     signal = np.max(array[max(0,int(y-1)):min(int(y+2), img_h), max(0,int(x-1)):min(int(x+2), img_w)]) # +2 because int rounds down and index is exclusive
-        #     snr = signal / np.sqrt(mean)
-        #     snrs.append(snr)
         return snrs
 
     def make_targets(self, positions, snrs):
@@ -286,7 +268,7 @@ class PsfDataset(Dataset):
                                           perlin_min_max=self._perlin_min_max
                                           )
 
-        m, image, target = self.psf_simulator.generate(seed=None,
+        image, target = self.psf_simulator.generate(seed=None,
                                     num_spots=num_spots)
         
-        return m, image, target
+        return image, target

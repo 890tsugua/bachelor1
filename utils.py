@@ -24,7 +24,7 @@ def extract_frame_from_tiff(tiff_file, frame_index):
         sys.exit(1)
         # Then: image.save('/Users/august/Downloads/frame_t_0_extracted.tif', format='TIFF')
 
-def evaluate_prediction(prediction, target, iou_thresh = 0.2):
+def evaluate_prediction(prediction, target, iou_thresh = 0.5):
     """
     Evaluate a single image prediction against the target. 
     Prediction and target are dictionaries containing keys...
@@ -84,11 +84,11 @@ def evaluate_prediction(prediction, target, iou_thresh = 0.2):
 
     return precision, recall, f1, ji, me, stde, mse, stdse
 
-def evaluate_predictions(predictions, targets, iou_thresh = 0.2):
+def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     """
     A method that is able to evaluate a batch (list) of predictions
     """
-
+    print(iou_thresh)
     precisions = []
     recalls = []
     f1s = []

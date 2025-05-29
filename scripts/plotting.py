@@ -82,8 +82,8 @@ class PlotController:
         
         if self.type == "eval":
             # Display metrics
-            precision, recall, f1, ji, le = evaluate_prediction(self.predictions, self.targets)
-            metrics_text = f"Precision: {precision:.2f} \nRecall: {recall:.2f} \nF1 score: {f1:.2f} \nJaccard index: {ji:.2f} \nLocalization error: {le:.2f}px"
+            precision, recall, f1, ji, me, stde, mse, stdse = evaluate_prediction(self.predictions, self.targets)
+            metrics_text = f"Precision: {precision:.2f} \nRecall: {recall:.2f} \nF1 score: {f1:.2f} \nJaccard index: {ji:.2f} \nLocalization error: {me:.2f}px"
             
             self.ax_metrics.clear()
             self.ax_metrics.axis('off')

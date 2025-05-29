@@ -52,7 +52,8 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
         iou_thresh: IoU threshold for matching predictions to ground truth.
         **kwargs: Additional arguments for the dataset.
     """
-    results = defaultdict(lambda: {'TP':0, 'FN':0})
+    resultsbg = defaultdict(lambda: {'TP':0, 'FN':0})
+    resultssig = defaultdict(lambda: {'TP':0, 'FN':0})
     model.eval()
     model.to(device)
     dp = kwargs.get('dp', 1)  # Decimal places for rounding SNRs
@@ -61,12 +62,12 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
         num_datapoints=1,
         num_spots_min=1,
         num_spots_max=1,
-        sigma_mean = kwargs.get('sigma_mean', 1.0),
+        sigma_mean = kwargs.get('sigma_mean', 1.5),
         sigma_std = kwargs.get('sigma_std', 0.1),
         snr_min = kwargs.get('snr_min', 1),
         snr_max = kwargs.get('snr_max', 15),
         snr_std = kwargs.get('snr_std', 0.0),
-        base_noise_min=10,
+        base_noise_min=300,
         base_noise_max=6000,
         use_gauss_noise=False,
         gauss_noise_std=0.05,
@@ -83,19 +84,22 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
         target = move_data_to_device(target, device)
         with torch.no_grad():
             prediction = model([image])
-        true_snr = target['true_snrs']
+        true_snrbg = [x[0] for x in target['true_snrs']]
+        true_snrsig = [x[1] for x in target['true_snrs']]
         pred_boxes = prediction[0]['boxes']  # Get the boxes from the prediction 
         gt_box = target['boxes'] # Only one box per image in this case
         boxfound = False
         for box in pred_boxes:
             if box_iou(box.unsqueeze(0), gt_box).item() > iou_thresh:
                 # If the prediction box matches the ground truth box
-                results[round(true_snr.item(),dp)]['TP'] += 1
+                resultsbg[round(true_snrbg[0].item(),dp)]['TP'] += 1
+                resultssig[round(true_snrsig[0].item(),dp)]['TP'] += 1
                 boxfound = True
         if not boxfound:
-            results[round(true_snr.item(),dp)]['FN'] += 1
+            resultsbg[round(true_snrbg[0].item(),dp)]['FN'] += 1
+            resultssig[round(true_snrsig[0].item(),dp)]['FN'] += 1
 
-    return results
+    return resultsbg, resultssig
 
 
     #     # Matching logic
@@ -127,7 +131,7 @@ def evaluate_recall_per_snr(model, reps, device, iou_thresh, **kwargs):
     # return results
 
 
-def test_model_fixed_snr(model, snr, num_images, device, **kwargs):
+def test_densities_fixed_snr(model, snr, num_images, device, **kwargs):
     """
     Test the model with a fixed SNR across a range of densities.
     
@@ -145,10 +149,10 @@ def test_model_fixed_snr(model, snr, num_images, device, **kwargs):
     """
     seed = kwargs.get('seed', None)
     sigma_std = kwargs.get('sigma_std', 0.1)
-    sigma_mean = kwargs.get('sigma_mean', 1.0)
+    sigma_mean = kwargs.get('sigma_mean', 1.5)
     snr_std = kwargs.get('snr_std', 0.1)
-    base_noise_min = kwargs.get('base_noise_min', 20)
-    base_noise_max = kwargs.get('base_noise_max', 150)
+    base_noise_min = kwargs.get('base_noise_min', 300)
+    base_noise_max = kwargs.get('base_noise_max', 10000)
     use_gauss_noise = kwargs.get('use_gauss_noise', False)
     gauss_noise_std = kwargs.get('gauss_noise_std', 0.05)
     use_perlin_noise = kwargs.get('use_perlin_noise', False)
@@ -168,7 +172,6 @@ def test_model_fixed_snr(model, snr, num_images, device, **kwargs):
     densities = np.unique(np.concatenate([small, medium, large]))
 
     for density in densities:
-        print(f"Testing density: {density}")
         num_spots = density_to_num_spots(density, img_w, img_h, um_per_pixel)
         dataset = PsfDataset(seed=seed,
                              num_datapoints=num_images,
@@ -202,4 +205,79 @@ def test_model_fixed_snr(model, snr, num_images, device, **kwargs):
         metrics = evaluate_predictions(all_predictions, all_targets)
         results[density] = metrics
         print(f"Density: {density}, Metrics: {metrics}")
+    return results
+
+
+def test_perlinnoise_fixed_snr(model, snr, num_images, device, **kwargs):
+    """
+    Test the model with a fixed SNR across a range of densities.
+    
+    Parameters:
+    - model: The model to be tested.
+    - snr: The fixed SNR value.
+    - start_density: The starting density for the test.
+    - end_density: The ending density for the test.
+    - step_density: The step size for the density.
+    - num_images: The number of images to generate for each density.
+    - device: The device to run the model on (CPU or GPU).
+    
+    Returns:
+    - results: A dictionary containing the evaluation metrics for each density.
+    """
+    seed = kwargs.get('seed', None)
+    sigma_std = kwargs.get('sigma_std', 0.1)
+    sigma_mean = kwargs.get('sigma_mean', 1.5)
+    snr_std = kwargs.get('snr_std', 0.1)
+    base_noise_min = kwargs.get('base_noise_min', 300)
+    base_noise_max = kwargs.get('base_noise_max', 10000)
+    use_gauss_noise = kwargs.get('use_gauss_noise', False)
+    gauss_noise_std = kwargs.get('gauss_noise_std', 0.05)
+    use_perlin_noise = kwargs.get('use_perlin_noise', True)
+    perlin_min_max = kwargs.get('perlin_min_max', (0.4, 0.6))
+    img_w = kwargs.get('img_w', 64)
+    img_h = kwargs.get('img_h', 64)
+    um_per_pixel = kwargs.get('um_per_pixel', 0.1) # Standard 100nm per pixel
+
+    results = {}
+    model.eval()
+    model.to(device)
+
+    # Fine steps for small values
+    noise_levels = [(0.0,1.0), (0.05,0.95),(0.1,0.9), (0.15,0.85), (0.2,0.8), (0.25,0.75), (0.3,0.7), 
+                    (0.35,0.65), (0.4,0.6), (0.45,0.55), (0.5,0.5)]
+
+    for noise_level in noise_levels:
+        num_spots = 20 
+        dataset = PsfDataset(seed=seed,
+                             num_datapoints=num_images,
+                             num_spots_min=num_spots,
+                             num_spots_max=num_spots,
+                             sigma_mean=sigma_mean,
+                             sigma_std=sigma_std,
+                             snr_min=snr,
+                             snr_max=snr,
+                             snr_std=snr_std,
+                             base_noise_min=base_noise_min,
+                             base_noise_max=base_noise_max,
+                             use_gauss_noise=use_gauss_noise,
+                             gauss_noise_std=gauss_noise_std,
+                             use_perlin_noise=True,
+                             perlin_min_max=noise_level,
+                             img_w=img_w, 
+                             img_h=img_h)
+        all_predictions = []
+        all_targets = []
+        for i in range(num_images):
+            image, target = dataset[0]
+            image = move_data_to_device(image, device)
+            target = move_data_to_device(target, device)
+            with torch.no_grad():
+                prediction = model([image])
+            all_predictions.append(prediction[0]) 
+            all_targets.append(target)
+        
+        # Evaluate predictions
+        metrics = evaluate_predictions(all_predictions, all_targets)
+        results[noise_level] = metrics
+        print(f"Noise level: {noise_level}, Metrics: {metrics}")
     return results
