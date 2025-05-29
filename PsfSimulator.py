@@ -47,14 +47,17 @@ class PsfSimulator:
         
         elif self.use_perlin_noise:
             # Draw a random number 1,2,4,8
-            d1 = np.random.choice([1, 2, 4, 8])
-            d2 = np.random.choice([1, 2, 4, 8])
+            d1 = np.random.choice([1, 2, 4])
+            d2 = np.random.choice([1, 2, 4])
             perlin = generate_perlin_noise_2d((img_h - 2 * pad, img_w - 2 * pad), (d1,d2), (0, 0))
-            abs_min_perlin, abs_max_perlin = self.perlin_min_max
-            min_perlin = np.random.uniform()
+            if self.perlin_min_max is not None:
+                min_perlin, max_perlin = self.perlin_min_max
+            else:
+                min_perlin = np.random.uniform(0, 0.5)
+                max_perlin = np.random.uniform(0.5, 1)
 
-            perlin = ((perlin+1)/2) * (1-min_perlin) + min_perlin # Normalize to [min_perlin, 1]
-            perlin = 500 + (perlin-min_perlin) * (base-200) / (1-min_perlin)  # Scale to [500, base]
+            perlin = ((perlin+1)/2) * (max_perlin-min_perlin) + min_perlin # Normalize to [min_perlin, max_perlin]
+            perlin = (perlin * base) + base/2
             array = np.zeros((img_h, img_w)).astype(np.int64)
             array[pad:-pad, pad:-pad] += perlin.astype(np.int64)
         
@@ -184,7 +187,7 @@ class PsfSimulator:
         true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
-        normalization = 'minmax'
+        normalization = 'minmax'  # 'minmax', 'absolute', 'standard'
         
         if normalization == 'minmax':
             array -= np.min(array)
@@ -192,6 +195,13 @@ class PsfSimulator:
         elif normalization == 'absolute':
             max_scale = 10000
             array /= max_scale
+        elif normalization == 'standard':
+            array = (array - np.mean(array)) / np.std(array)
+
+        # minmaxarray = torch.from_numpy((array - np.min(array)) / (np.max(array) - np.min(array))).float()
+        # standardarray = torch.from_numpy((array - np.mean(array)) / np.std(array)).float()
+        # minmaximage = torch.stack([minmaxarray] * 3, axis=0)
+        # standardimage = torch.stack([standardarray] * 3, axis=0)
 
         array = torch.from_numpy(array).float()
         image = torch.stack([array] * 3, axis=0)
@@ -276,7 +286,7 @@ class PsfDataset(Dataset):
                                           perlin_min_max=self._perlin_min_max
                                           )
 
-        image, target = self.psf_simulator.generate(seed=None,
+        m, image, target = self.psf_simulator.generate(seed=None,
                                     num_spots=num_spots)
         
-        return image, target
+        return m, image, target

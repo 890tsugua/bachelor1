@@ -8,6 +8,7 @@ import sys
 import PIL
 from PIL import Image
 import tifffile
+import numpy as np
 
 # Open the TIFF file
 def extract_frame_from_tiff(tiff_file, frame_index):
@@ -23,7 +24,7 @@ def extract_frame_from_tiff(tiff_file, frame_index):
         sys.exit(1)
         # Then: image.save('/Users/august/Downloads/frame_t_0_extracted.tif', format='TIFF')
 
-def evaluate_prediction(prediction, target, iou_thresh = 0.5):
+def evaluate_prediction(prediction, target, iou_thresh = 0.2):
     """
     Evaluate a single image prediction against the target. 
     Prediction and target are dictionaries containing keys...
@@ -66,43 +67,68 @@ def evaluate_prediction(prediction, target, iou_thresh = 0.5):
     f1 = (2*(precision*recall))/(precision+recall) if (precision + recall) > 0 else 0
 
     # ADD LOCALIZATION ERROR
-    loc_error = 0
+    loc_errors = []
+    square_loc_errors = []
     for (i,j) in matches:
         dx = target['positions'][j][0] - prediction['box_centers'][i][0]
         dy = target['positions'][j][1] - prediction['box_centers'][i][1]
-        loc_error += (dx**2 + dy**2)**0.5
-    loc_error /= tp if tp > 0 else 1
-    loc_error = loc_error.item() if isinstance(loc_error, torch.Tensor) else loc_error
+        d2 = (dx**2 + dy**2)
+        d2 = d2.item() if isinstance(d2, torch.Tensor) else d2
+        square_loc_errors.append(d2)
+        loc_errors.append(d2**0.5)
+    
+    mse = np.mean(square_loc_errors)
+    stdse = np.std(square_loc_errors)
+    me = np.mean(loc_errors)
+    stde = np.std(loc_errors)
 
-    return precision, recall, f1, ji, loc_error
+    return precision, recall, f1, ji, me, stde, mse, stdse
 
-def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
+def evaluate_predictions(predictions, targets, iou_thresh = 0.2):
     """
     A method that is able to evaluate a batch (list) of predictions
     """
 
-    precision = 0
-    recall = 0
-    total_f1 = 0
-    total_ji = 0
-    total_le = 0
+    precisions = []
+    recalls = []
+    f1s = []
+    jis = []
+    mean_errors = []
+    std_errors = []
+    mses = []
+    stdses = []
 
     for prediction, target in zip(predictions, targets):
-        p, r, f1, ji, le = evaluate_prediction(prediction, target, iou_thresh)
-        precision += p
-        recall += r
-        total_f1 += f1
-        total_ji += ji
-        total_le += le
+        p, r, f1, ji, mean_error, std_error, mse, stdse = evaluate_prediction(prediction, target, iou_thresh)
+        precisions.append(p)
+        recalls.append(r)
+        f1s.append(f1)
+        jis.append(ji)
+        mean_errors.append(mean_error)
+        std_errors.append(std_error)
+        mses.append(mse)
+        stdses.append(stdse)
 
-    num_images = len(predictions)
-    precision /= num_images
-    recall /= num_images
-    avg_f1 = total_f1 / num_images
-    avg_ji = total_ji / num_images
-    avg_le = total_le / num_images
+    precision = np.mean(precisions)
+    recall = np.mean(recalls)
+    avg_f1 = np.mean(f1s)
+    avg_ji = np.mean(jis)
+    avg_me = np.mean(mean_errors)
+    avg_stde = np.mean(std_errors)
+    avg_mse = np.mean(mses)
+    avg_stdse = np.mean(stdses)
 
-    return {"precision": precision, "recall": recall, "avg f1": avg_f1, "avg ji": avg_ji, "avg loc error": avg_le}
+    std_precision = np.std(precisions)
+    std_recall = np.std(recalls)
+    std_f1 = np.std(f1s)
+    std_ji = np.std(jis)
+    std_me = np.std(mean_errors)
+    std_mse = np.std(mses)
+
+    return {"mean_precision": precision, "mean_recall": recall, "mean_f1": avg_f1, "mean_ji": avg_ji, 
+            "mean_loc_error": avg_me, "avg_std_loc_error": avg_stde, "mean_mean_squared_error": avg_mse, "avg_std_mean_squared_error": avg_stdse,
+            "std_precision": std_precision, "std_recall": std_recall, "std_f1": std_f1, "std_ji": std_ji, 
+            "std_loc_error": std_me, "std_mean_squared_error": std_mse}
 
 
 def move_data_to_device(data, # Data to move to the device.
