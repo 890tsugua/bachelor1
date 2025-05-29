@@ -170,7 +170,7 @@ class SubpixRCNN(FasterRCNN):
             bbox_reg_weights=kwargs.get("bbox_reg_weights", None),
             score_thresh=kwargs.get("score_thresh", 0.5),
             nms_thresh=kwargs.get("nms_thresh", 0.5),
-            detections_per_img=kwargs.get("detections_per_img", 100), # No need to pass mask variables, they default to None
+            detections_per_img=kwargs.get("detections_per_img", None), # No need to pass mask variables, they default to None
             subpixel_head=subpixel_head
         )
         self.roi_heads = new_roi_heads

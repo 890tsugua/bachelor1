@@ -21,7 +21,7 @@ device = 'cpu'
 
 ### LOAD THE MODEL ###
 backbone = resnet_fpn_backbone("resnet50", pretrained=True)
-kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.9}
+kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.9, "image_mean": [0,0,0]}
 model = SubpixRCNN(backbone, num_classes=2, device=device, **kwargs)
 model.to(device=device)
 path = r"/Users/august/Desktop/bachelor/bachelor1/runs_LOCAL/second_long_run.pth"
