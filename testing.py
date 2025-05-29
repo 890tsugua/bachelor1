@@ -19,14 +19,9 @@ import numpy as np
 device = 'cuda' 
 
 ### LOAD THE MODEL ###
-<<<<<<< HEAD
-backbone = resnet_fpn_backbone("resnet50", pretrained=True)
-kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.9, "image_mean": [0,0,0]}
-=======
+
 backbone = resnet_fpn_backbone("resnet50", pretrained=False, trainable_layers=5)
 kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.9, "image_mean":[0,0,0], "image_std":[1,1,1]}
-
->>>>>>> 887c198300c5f99f3e01dfeb3eace396ac6b2965
 model = SubpixRCNN(backbone, num_classes=2, device=device, **kwargs)
 model.to(device=device)
 path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\notebooks\subpix_rcnn_models\2025-05-28_08-57-04\threehrsperlin.pth"
