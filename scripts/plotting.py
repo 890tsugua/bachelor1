@@ -4,6 +4,10 @@ import torch
 from torchvision.utils import draw_bounding_boxes
 import torch.nn.functional as F
 from utils import evaluate_prediction, move_dict_to_cpu
+from datetime import datetime
+import numpy as np
+import PIL
+from PIL import Image
 
 class PlotController:
     def __init__(self, image, targets, predictions, type, show_preds, show_targets, show_scores):
@@ -39,17 +43,42 @@ class PlotController:
             self.metrics_text_obj = None
 
         # Initial plot
-        self.plot()
         if self.type == "buttons" or self.type == "eval":
+            plt.subplots_adjust(bottom=0.3) # Make room for buttons
+
+            self.ax_metrics = plt.axes([0.7, 0.075, 0.2, 0.125])
+            self.metrics_text_obj = None
+
             # Add buttons
             ax_box = plt.axes([0.1, 0.075, 0.2, 0.125])
             ax_center = plt.axes([0.4, 0.075, 0.2, 0.125])
+            ax_saveimg = plt.axes([0.7, 0.01, 0.2, 0.05])  # Save image button
+
             self.btn_box = Button(ax_box, 'Toggle Boxes')
             self.btn_center = Button(ax_center, 'Toggle Centers')
+            self.btn_saveimg = Button(ax_saveimg, 'Save Image')
 
             self.btn_box.on_clicked(self.toggle_boxes)
             self.btn_center.on_clicked(self.toggle_centers)
+            self.btn_saveimg.on_clicked(self.save_img_tensor)  # Connect to save method
+
+
+        # Initial plot
+        self.plot()
         plt.show()
+
+    def save_img_tensor(self, event):
+        # Save only the image tensor (not the whole figure)
+        filename = f"image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        img = self.enlarged_image.cpu()
+        # Convert tensor [C, H, W] to numpy [H, W, C] and scale to [0, 255]
+        img_np = (img.permute(1, 2, 0).numpy() * 255).clip(0, 255).astype(np.uint8)
+        # If grayscale, remove channel dimension
+        if img_np.shape[2] == 1:
+            img_np = img_np.squeeze(2)
+        pil_img = Image.fromarray(img_np)
+        pil_img.save(filename)
+        print(f"Image tensor saved as {filename}")
 
     def plot(self):
         self.ax.clear()
