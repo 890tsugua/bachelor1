@@ -16,12 +16,12 @@ import matplotlib.pyplot as plt
 import tifffile
 import numpy as np
 
-device = 'cuda'
+device = 'cuda' 
 
 ### LOAD THE MODEL ###
+
 backbone = resnet_fpn_backbone("resnet50", pretrained=False, trainable_layers=5)
 kwargs = {"nms_thresh": 0.1, "detections_per_img": None, "score_thresh": 0.9, "image_mean":[0,0,0], "image_std":[1,1,1]}
-
 model = SubpixRCNN(backbone, num_classes=2, device=device, **kwargs)
 model.to(device=device)
 path = r"D:\zeiss\Desktop\coding\Hilger\bachelor\notebooks\subpix_rcnn_models\2025-05-28_08-57-04\threehrsperlin.pth"
