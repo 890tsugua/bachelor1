@@ -68,17 +68,35 @@ class PlotController:
         plt.show()
 
     def save_img_tensor(self, event):
-        # Save only the image tensor (not the whole figure)
         filename = f"image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        img = self.enlarged_image.cpu()
-        # Convert tensor [C, H, W] to numpy [H, W, C] and scale to [0, 255]
-        img_np = (img.permute(1, 2, 0).numpy() * 255).clip(0, 255).astype(np.uint8)
-        # If grayscale, remove channel dimension
-        if img_np.shape[2] == 1:
-            img_np = img_np.squeeze(2)
-        pil_img = Image.fromarray(img_np)
-        pil_img.save(filename)
-        print(f"Image tensor saved as {filename}")
+        # Hide buttons and metrics axes if they exist
+        extra_axes = []
+        if hasattr(self, 'ax_metrics'):
+            extra_axes.append(self.ax_metrics)
+        if hasattr(self, 'btn_box'):
+            self.btn_box.ax.set_visible(False)
+        if hasattr(self, 'btn_center'):
+            self.btn_center.ax.set_visible(False)
+        if hasattr(self, 'btn_saveimg'):
+            self.btn_saveimg.ax.set_visible(False)
+        for ax in extra_axes:
+            ax.set_visible(False)
+
+        self.fig.canvas.draw_idle()
+        # Save the current view (including zoom/pan)
+        self.fig.savefig(filename, dpi=300)  # No bbox_inches=extent!
+        print(f"Image (current view, without buttons) saved as {filename}")
+
+        # Restore UI
+        for ax in extra_axes:
+            ax.set_visible(True)
+        if hasattr(self, 'btn_box'):
+            self.btn_box.ax.set_visible(True)
+        if hasattr(self, 'btn_center'):
+            self.btn_center.ax.set_visible(True)
+        if hasattr(self, 'btn_saveimg'):
+            self.btn_saveimg.ax.set_visible(True)
+        self.fig.canvas.draw_idle()
 
     def plot(self):
         self.ax.clear()
