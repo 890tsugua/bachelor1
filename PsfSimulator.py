@@ -171,9 +171,9 @@ class PsfSimulator:
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
 
-        unnormalized_array = array.copy()
+        #unnormalized_array = array.copy()
 
-        normalization = 'standard'#'minmax'  # 'minmax', 'absolute', 'standard'
+        normalization = 'a'#'minmax'  # 'minmax', 'absolute', 'standard'
         
         if normalization == 'minmax':
             array -= np.min(array)
@@ -184,19 +184,19 @@ class PsfSimulator:
         elif normalization == 'standard':
             array = (array - np.mean(array)) / np.std(array)
 
-        # minmaxarray = torch.from_numpy((array - np.min(array)) / (np.max(array) - np.min(array))).float()
-        # standardarray = torch.from_numpy((array - np.mean(array)) / np.std(array)).float()
-        # minmaximage = torch.stack([minmaxarray] * 3, axis=0)
-        # standardimage = torch.stack([standardarray] * 3, axis=0)
+        minmaxarray = torch.from_numpy((array - np.min(array)) / (np.max(array) - np.min(array))).float()
+        standardarray = torch.from_numpy((array - np.mean(array)) / np.std(array)).float()
+        minmaximage = torch.stack([minmaxarray] * 3, axis=0)
+        standardimage = torch.stack([standardarray] * 3, axis=0)
 
-        blurred_channel = gaussian_filter(array, sigma=1.0)
+        # blurred_channel = gaussian_filter(array, sigma=1.0)
         # lap = gaussian_laplace(array, sigma=2)
-        lap = laplace(array)
-        array = np.stack([array, blurred_channel, lap], axis=0)
-        image = torch.from_numpy(array).float()
+        # lap = laplace(array)
+        # array = np.stack([array, blurred_channel, lap], axis=0)
+        # image = torch.from_numpy(array).float()
         targets = self.make_targets(positions + 1, true_snrs)
 
-        return unnormalized_array, image, targets
+        return minmaximage, standardimage, targets
 
 class PsfDataset(Dataset):
     """
