@@ -3,6 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 from perlin_numpy import generate_perlin_noise_2d
 from torch.utils.data import Dataset, DataLoader
+from scipy.ndimage import gaussian_filter, gaussian_laplace, laplace
 
 
 class PsfSimulator:
@@ -169,7 +170,7 @@ class PsfSimulator:
         true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
-        normalization = 'minmax'  # 'minmax', 'absolute', 'standard'
+        normalization = 'standard'#'minmax'  # 'minmax', 'absolute', 'standard'
         
         if normalization == 'minmax':
             array -= np.min(array)
@@ -185,8 +186,11 @@ class PsfSimulator:
         # minmaximage = torch.stack([minmaxarray] * 3, axis=0)
         # standardimage = torch.stack([standardarray] * 3, axis=0)
 
-        array = torch.from_numpy(array).float()
-        image = torch.stack([array] * 3, axis=0)
+        blurred_channel = gaussian_filter(array, sigma=1.0)
+        # lap = gaussian_laplace(array, sigma=2)
+        lap = laplace(array)
+        array = np.stack([array, blurred_channel, lap], axis=0)
+        image = torch.from_numpy(array).float()
         targets = self.make_targets(positions + 1, true_snrs)
 
         return image, targets
@@ -268,7 +272,7 @@ class PsfDataset(Dataset):
                                           perlin_min_max=self._perlin_min_max
                                           )
 
-        image, target = self.psf_simulator.generate(seed=None,
+        im, target = self.psf_simulator.generate(seed=None,
                                     num_spots=num_spots)
         
-        return image, target
+        return im, target

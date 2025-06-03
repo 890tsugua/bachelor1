@@ -24,12 +24,18 @@ def extract_frame_from_tiff(tiff_file, frame_index):
         sys.exit(1)
         # Then: image.save('/Users/august/Downloads/frame_t_0_extracted.tif', format='TIFF')
 
-def evaluate_prediction(prediction, target, iou_thresh = 0.5):
+def evaluate_prediction(prediction, target, iou_thresh = 0.5, score_thresh = None):
     """
     Evaluate a single image prediction against the target. 
     Prediction and target are dictionaries containing keys...
     """
-    pred_boxes = prediction['boxes']
+    if score_thresh is not None:
+        # Filter predictions based on score threshold
+        pred_boxes = prediction['boxes'][prediction['scores'] > score_thresh]
+        pred_centers = prediction['box_centers'][prediction['scores'] > score_thresh]
+    else:
+        pred_boxes = prediction['boxes']
+        pred_centers = prediction['box_centers']
     gt_boxes = target['boxes']
 
     # Match each prediction to at most one ground truth using greedy matching
@@ -70,25 +76,25 @@ def evaluate_prediction(prediction, target, iou_thresh = 0.5):
     loc_errors = []
     square_loc_errors = []
     for (i,j) in matches:
-        dx = target['positions'][j][0] - prediction['box_centers'][i][0]
-        dy = target['positions'][j][1] - prediction['box_centers'][i][1]
+        dx = target['positions'][j][0] - pred_centers[i][0]
+        dy = target['positions'][j][1] - pred_centers[i][1]
         d2 = (dx**2 + dy**2)
         d2 = d2.item() if isinstance(d2, torch.Tensor) else d2
         square_loc_errors.append(d2)
         loc_errors.append(d2**0.5)
     
-    mse = np.mean(square_loc_errors)
-    stdse = np.std(square_loc_errors)
-    me = np.mean(loc_errors)
-    stde = np.std(loc_errors)
+    mse = np.nanmean(square_loc_errors)
+    stdse = np.nanstd(square_loc_errors)
+    me = np.nanmean(loc_errors)
+    stde = np.nanstd(loc_errors)
 
     return precision, recall, f1, ji, me, stde, mse, stdse
 
-def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
+def evaluate_predictions(predictions, targets, iou_thresh = 0.5, score_thresh = None):
     """
     A method that is able to evaluate a batch (list) of predictions
     """
-    print(iou_thresh)
+    #print(iou_thresh)
     precisions = []
     recalls = []
     f1s = []
@@ -99,7 +105,7 @@ def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
     stdses = []
 
     for prediction, target in zip(predictions, targets):
-        p, r, f1, ji, mean_error, std_error, mse, stdse = evaluate_prediction(prediction, target, iou_thresh)
+        p, r, f1, ji, mean_error, std_error, mse, stdse = evaluate_prediction(prediction, target, iou_thresh, score_thresh)
         precisions.append(p)
         recalls.append(r)
         f1s.append(f1)
@@ -109,21 +115,21 @@ def evaluate_predictions(predictions, targets, iou_thresh = 0.5):
         mses.append(mse)
         stdses.append(stdse)
 
-    precision = np.mean(precisions)
-    recall = np.mean(recalls)
-    avg_f1 = np.mean(f1s)
-    avg_ji = np.mean(jis)
-    avg_me = np.mean(mean_errors)
-    avg_stde = np.mean(std_errors)
-    avg_mse = np.mean(mses)
-    avg_stdse = np.mean(stdses)
+    precision = np.nanmean(precisions)
+    recall = np.nanmean(recalls)
+    avg_f1 = np.nanmean(f1s)
+    avg_ji = np.nanmean(jis)
+    avg_me = np.nanmean(mean_errors)
+    avg_stde = np.nanmean(std_errors)
+    avg_mse = np.nanmean(mses)
+    avg_stdse = np.nanmean(stdses)
 
-    std_precision = np.std(precisions)
-    std_recall = np.std(recalls)
-    std_f1 = np.std(f1s)
-    std_ji = np.std(jis)
-    std_me = np.std(mean_errors)
-    std_mse = np.std(mses)
+    std_precision = np.nanstd(precisions)
+    std_recall = np.nanstd(recalls)
+    std_f1 = np.nanstd(f1s)
+    std_ji = np.nanstd(jis)
+    std_me = np.nanstd(mean_errors)
+    std_mse = np.nanstd(mses)
 
     return {"mean_precision": precision, "mean_recall": recall, "mean_f1": avg_f1, "mean_ji": avg_ji, 
             "mean_loc_error": avg_me, "avg_std_loc_error": avg_stde, "mean_mean_squared_error": avg_mse, "avg_std_mean_squared_error": avg_stdse,
