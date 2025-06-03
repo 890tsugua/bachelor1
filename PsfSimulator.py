@@ -170,6 +170,9 @@ class PsfSimulator:
         true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
+
+        unnormalized_array = array.copy()
+
         normalization = 'standard'#'minmax'  # 'minmax', 'absolute', 'standard'
         
         if normalization == 'minmax':
@@ -193,7 +196,7 @@ class PsfSimulator:
         image = torch.from_numpy(array).float()
         targets = self.make_targets(positions + 1, true_snrs)
 
-        return image, targets
+        return unnormalized_array, image, targets
 
 class PsfDataset(Dataset):
     """
@@ -272,7 +275,7 @@ class PsfDataset(Dataset):
                                           perlin_min_max=self._perlin_min_max
                                           )
 
-        im, target = self.psf_simulator.generate(seed=None,
+        a, im, target = self.psf_simulator.generate(seed=None,
                                     num_spots=num_spots)
         
-        return im, target
+        return a, im, target
