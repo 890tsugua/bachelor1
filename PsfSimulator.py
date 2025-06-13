@@ -60,7 +60,10 @@ class PsfSimulator:
             perlin = ((perlin+1)/2) * (max_perlin-min_perlin) + min_perlin # Normalize to [min_perlin, max_perlin]
             perlin = (perlin * base) + base/2
             array = np.zeros((img_h, img_w)).astype(np.int64)
-            array[pad:-pad, pad:-pad] += perlin.astype(np.int64)
+            if pad == 0:
+                array += perlin.astype(np.int64)
+            else:
+                array[pad:-pad, pad:-pad] += perlin.astype(np.int64)
         
         else:
             array = np.full((img_h, img_w), int(base))
@@ -68,6 +71,8 @@ class PsfSimulator:
         return array.astype(np.float32)
 
     def generate_positions(self, num_spots):
+        if num_spots == 0:
+            return np.empty((0, 2), dtype=np.float32)
         x = self.img_w * np.random.rand(num_spots)
         y = self.img_h * np.random.rand(num_spots)
         return np.column_stack((x, y))
@@ -154,20 +159,22 @@ class PsfSimulator:
         if seed is not None:
             np.random.seed(seed)
 
-        if num_spots <= 0:
-            raise ValueError("Number of spots must be more than 0")
-
-        positions = self.generate_positions(num_spots)
-        
-        sigmas = np.clip(np.random.normal(self.sigma_mean, self.sigma_std, num_spots), 0, None)
-        snrs = np.clip(np.random.normal(self.snr_mean, self.snr_std, num_spots), 0, None)
-        pad = int(np.ceil(3 * np.max(sigmas) * 2))
-        
-        background = self.make_background(self.base_noise, pad)
-        array = self.draw_array(positions, sigmas, background, snrs, pad)
-        array = self.add_poisson(array)
-
-        true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
+        if num_spots == 0:
+            pad = 0
+            background = self.make_background(self.base_noise, pad)
+            array = self.add_poisson(background)
+            true_snrs = np.empty((0, 2), dtype=np.float32)
+            targets = self.make_targets(np.empty((0, 2), dtype=np.float32), true_snrs)
+        elif num_spots > 0:
+            positions = self.generate_positions(num_spots)
+            sigmas = np.clip(np.random.normal(self.sigma_mean, self.sigma_std, num_spots), 0, None)
+            snrs = np.clip(np.random.normal(self.snr_mean, self.snr_std, num_spots), 0, None)
+            pad = int(np.ceil(3 * np.max(sigmas) * 2))
+            background = self.make_background(self.base_noise, pad)
+            array = self.draw_array(positions, sigmas, background, snrs, pad)
+            array = self.add_poisson(array)
+            true_snrs = self.find_true_snrs(array, positions, self.img_w, self.img_h)
+            targets = self.make_targets(positions + 1, true_snrs)
 
         array = np.pad(np.clip(array.astype(np.float32),0,None), ((1, 1), (1, 1)), mode='median')
 
@@ -184,19 +191,19 @@ class PsfSimulator:
         elif normalization == 'standard':
             array = (array - np.mean(array)) / np.std(array)
 
-        minmaxarray = torch.from_numpy((array - np.min(array)) / (np.max(array) - np.min(array))).float()
-        standardarray = torch.from_numpy((array - np.mean(array)) / np.std(array)).float()
-        minmaximage = torch.stack([minmaxarray] * 3, axis=0)
-        standardimage = torch.stack([standardarray] * 3, axis=0)
+        # minmaxarray = torch.from_numpy((array - np.min(array)) / (np.max(array) - np.min(array))).float()
+        # standardarray = torch.from_numpy((array - np.mean(array)) / np.std(array)).float()
+        # minmaximage = torch.stack([minmaxarray] * 3, axis=0)
+        # standardimage = torch.stack([stsandardarray] * 3, axis=0)
 
-        # blurred_channel = gaussian_filter(array, sigma=1.0)
-        # lap = gaussian_laplace(array, sigma=2)
-        # lap = laplace(array)
-        # array = np.stack([array, blurred_channel, lap], axis=0)
-        # image = torch.from_numpy(array).float()
-        targets = self.make_targets(positions + 1, true_snrs)
+        blurred_channel = gaussian_filter(array, sigma=1.0)
+        lap = gaussian_laplace(array, sigma=2)
+        lap = laplace(array)
+        array = np.stack([array, blurred_channel, lap], axis=0)
+        image = torch.from_numpy(array).float()
+        
 
-        return minmaximage, standardimage, targets
+        return image, targets
 
 class PsfDataset(Dataset):
     """
@@ -275,7 +282,7 @@ class PsfDataset(Dataset):
                                           perlin_min_max=self._perlin_min_max
                                           )
 
-        a, im, target = self.psf_simulator.generate(seed=None,
+        im, target = self.psf_simulator.generate(seed=None,
                                     num_spots=num_spots)
         
-        return a, im, target
+        return im, target
